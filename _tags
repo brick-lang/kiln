@@ -1,1 +1,28 @@
-<{lexer,parser}.ml>: use_camlp4, pp(camlp4of)
+# OASIS_START
+# DO NOT EDIT (digest: 9c866ca7b810def28ae9b1cf1e0ac0af)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Executable kiln
+<src/driver.{native,byte}>: pkg_core
+<src/driver.{native,byte}>: pkg_str
+<src/driver.{native,byte}>: pkg_threads
+<src/driver.{native,byte}>: pkg_res
+<src/driver.{native,byte}>: pkg_cfg
+<src/*.ml{,i}>: pkg_core
+<src/*.ml{,i}>: pkg_str
+<src/*.ml{,i}>: pkg_threads
+<src/*.ml{,i}>: pkg_res
+<src/*.ml{,i}>: pkg_cfg
+# OASIS_STOP
+true: use_menhir

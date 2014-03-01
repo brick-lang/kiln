@@ -1,0 +1,15 @@
+OASISFormat: 0.4
+Name:        kiln
+Version:     0.1
+Synopsis:    The reference compiler for the Brick language
+Authors:     Katherine Whitlock
+License:     BSD3
+Plugins:     DevFiles (0.4)
+XDevFilesEnableMakefile: false
+
+Executable kiln
+  Path:           src
+  BuildTools:     menhir, ocamlbuild
+  BuildDepends:   core, str, threads, res, cfg
+  MainIs:         driver.ml
+  CompiledObject: best
