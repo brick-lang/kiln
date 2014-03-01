@@ -64,9 +64,6 @@ let parse_error s =
 /* booleans */
 %token TRUE FALSE
 
-/* Unit */
-%token UNIT
-
 /* End of Stream */
 %token EOS
 
@@ -74,16 +71,16 @@ let parse_error s =
 %%
 
 stmt: 
-  | l = lambda { TopFun(l) }
+  | l = lambda  { TopFun(l) }
 
 expr:
-  | i = INTEGER { let (i : expr) = Integer(i) in i }
-  | f = FLOAT   { let (f : expr) = Float(f) in f }
-  | i = IDENT   { let (i : expr) = Ident(i) in i }
-  | l = lambda  { Lambda(l) }
+  | i = INTEGER { Integer(i) }
+  | f = FLOAT   { Float(f)   }
+  | i = IDENT   { Ident(i)   }
+  | l = lambda  { Lambda(l)  }
 
 lambda: 
-  | vb = var_bind; sep_or_e; bl = block { let (vb : variable list) = vb in Function(Prototype("", vb), bl) }
+  | vb = var_bind; sep*; bl = block { let (vb : variable list) = vb in Function(Prototype("", vb), bl) }
 
 var_bind: 
   | PIPE; a = arg_list; PIPE { let (a : variable list) = a in a }
@@ -94,14 +91,8 @@ arg_list:
   | v = var { [v] }
   | (* Empty *) { [ ] }
 
-let_main:
-  | LET; a = assignment; INDENT; lt = let_tail; e = expr 
-    { Let(a::lt, e) }
-
-let_tail : 
-  | (* empty *) { [ ] }
-  | lt = let_tail; a = assignment { lt @ [a] }
-
+let_main: LET; a = assignment; INDENT; lt = assignment*; e = expr 
+  { Let(a::lt, e) }
 
 assignment: 
 
@@ -134,10 +125,6 @@ type_annot:
 term_expr: 
   | (* empty *) { [ ] }
   | te = term_expr; e = expr; sep { te@[e] }
-
-sep_or_e:
-  | (* Empty *) { }
-  | sep_or_e sep { }
 
 
 block: 
@@ -172,35 +159,11 @@ terminator:
   | v = value { Some v }
   ;
 
-
 value:
   | s = STRING  { String s }
   | i = INT     { Int i }
   | f = FLOAT   { Float f }
   | TRUE        { Bool true }
   | FALSE       { Bool false }
-  ;
-
-
-object_fields: 
-  | obj = rev_object_fields { List.rev obj }
-  ;
-
-rev_object_fields:
-  | (* empty *) { [] }
-  | obj = rev_object_fields; COMMA; k = ID; COLON; v = value
-    { (k, v) :: obj }
-  ;
-
-
-array_values:
-  | (* empty *) { [] }
-  | vl = rev_values { List.rev vl }
-  ;
-
-rev_values:
-  | v = value { [v] }
-  | vl = rev_values; COMMA; v = value
-    { v :: vl }
   ;
 */
