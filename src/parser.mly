@@ -18,7 +18,6 @@ let parse_error s =
   raise Parsing.Parse_error
 %}
 
-/* keyword */
 %token  LET  /* variable binding*/
 %token  FUNCTION /* function creation */
 
@@ -26,6 +25,8 @@ let parse_error s =
 %token  PIPE           /* | */
 %token  COMMA          /* , */
 %token  EQUALS         /* = */
+%token  LESS_THAN
+%token  GREATER_THAN
 %token  DOUBLE_EQUALS  /* == */
 %token  SPACESHIP      /* <=> */
 %token  BANG           /* ! */
@@ -65,79 +66,86 @@ let parse_error s =
 %token TRUE FALSE
 
 /* End of Stream */
-%token EOS
+%token EOF
 
-%start <Ast.toplevel> stmt
+%start <Ast.expr list> file_input
 %%
 
-stmt: 
-  | l = lambda  { TopFun(l) }
+%public %inline delimited_by(delim,X): 
+  d = delimited(delim,X,delim) { d }
+
+%public %inline preceded_by(delim,X): 
+  delim x = X  { x }
+
+file_input:
+  | s = newline_or_stmt EOF { s }
+
+newline_or_stmt:
+  | (* Empty *) { [ ] }
+  | NEWLINE n = newline_or_stmt { n }
+  | s = stmt n = newline_or_stmt  { s::n }
+
+stmt: e = expr{ e }
 
 expr:
   | i = INTEGER { Integer(i) }
   | f = FLOAT   { Float(f)   }
   | i = IDENT   { Ident(i)   }
-  | l = lambda  { Lambda(l)  }
+  | f = func    { f }
 
-lambda: 
-  | vb = var_bind; sep*; bl = block { let (vb : variable list) = vb in Function(Prototype("", vb), bl) }
+func: 
+  | FUNCTION p = delimited(LPAREN, arg_list, RPAREN) sep* bl = block 
+    { Function("", p, bl) }
+  | FUNCTION name = IDENT p = delimited(LPAREN, arg_list, RPAREN) sep* bl = block 
+    { Function(name, p, bl) }
+  | FUNCTION name = IDENT sep* bl = block 
+    { Function(name, [], bl) }
+  | vb = delimited_by(PIPE, arg_list) sep* bl = block 
+    { Function("", vb, bl) }
 
-var_bind: 
-  | PIPE; a = arg_list; PIPE { let (a : variable list) = a in a }
-/*  | (* Empty *) { [ ] }*/
+%inline arg_list: sl = separated_list(COMMA, var) { sl }
 
-arg_list:
-  | a = arg_list ; COMMA; v = var { a @ [v] }
-  | v = var { [v] }
-  | (* Empty *) { [ ] }
-
-let_main: LET; a = assignment; INDENT; lt = assignment*; e = expr 
-  { Let(a::lt, e) }
+let_main: 
+  | LET a = assignment INDENT lt = assignment* e = expr { Let(a::lt, e) }
 
 assignment: 
-
-/*  |PIPE Var EQUALS Exp Pnt_or_E */
-
-  | PIPE; v = var; EQUALS; e = expr; NEWLINE { Binding(v, e, No_Call) }
-
-/*  | PIPE Var LEFT_STAB Exp Pnt_or_E 
-  | PIPE Var Pnt_Exec
-
-*/
-
-pnt_or_e: 
-  | (* Empty *) { No_Call } 
-  | p = pnt_exec { p } ;
+  | PIPE v = var EQUALS e = expr NEWLINE* { Binding(v, e, No_Call) }
+/*  | PIPE v = var EQUALS e = expr p = pnt_exec? NEWLINE* { }
+  | PIPE v = var LEFT_STAB e = expr p = pnt_exec? NEWLINE* { } 
+  | PIPE v = var p = pnt_exec NEWLINE* { } */
 
 pnt_exec: 
-  | RIGHT_STAB; e = expr { Pipelined_Call(e) }
-  | RIGHT_FAT; e = expr { Forked_Call(e) }
+  | RIGHT_STAB e = expr { Pipelined_Call(e) }
+  | RIGHT_FAT e = expr { Forked_Call(e) }
 
 var: 
-  | BANG; i = IDENT; t = type_annot { Ref_Var(i, t) }
-  | i = IDENT; t = type_annot { Plain_Var(i, t) }
+  | BANG i = IDENT t = type_annot { Ref_Var(i, t) }
+  | i = IDENT t = type_annot { Plain_Var(i, t) }
    
 
-type_annot: 
-  | (* Empty *) { Unknown_Type }
-  | COLON; t = TYPE { Known_Type(t) }
+type_annot:
+  | (* Empty *) { None }
+  |  p = preceded_by(COLON, TYPE) { Some(p) }
 
-term_expr: 
-  | (* empty *) { [ ] }
-  | te = term_expr; e = expr; sep { te@[e] }
 
+%inline term_expr: e = expr sep* { e }
 
 block: 
   /* a block is either expr, { expr }, or INDENT expr UNDENT */
-  | LCURLY; te = term_expr; RCURLY { Block(te) }
-  | INDENT; te = term_expr; UNDENT { Block(te) }
+  | LCURLY te = term_expr* RCURLY { Block(te) }
+  | INDENT te = term_expr* UNDENT { Block(te) }
   | e = expr { e } 
 
 sep:
   | NEWLINE { }
   | SEMICOLON { }
 
+comparison: s = separated_nonempty_list(comp_op, expr) { s }
 
+comp_op:
+  | LESS_THAN { }
+  | GREATER_THAN { }
+  | DOUBLE_EQUALS { }
 /*
 expr:
   | v = value { v }

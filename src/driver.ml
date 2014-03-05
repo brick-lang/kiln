@@ -19,7 +19,9 @@ open Lexer
 open Format
 open Support.Error
 open Ast
+open Core.Std
 
+exception Error of string * int * int * string
 
 let searchpath = ref [""]
 
@@ -53,31 +55,24 @@ let parseFile inFile =
   let pi = openfile inFile in
   let lexbuf = Lexing.from_channel pi in
   let result =
-    try Parser.stmt Lexer.indent lexbuf with
-    | Parsing.Parse_error -> err "Parse error"
-    | Parser.Error -> err "Parse error"
+   Parser.file_input Lexer.indent lexbuf 
   in
-  Parsing.clear_parser(); close_in pi; result
+  Parsing.clear_parser (); In_channel.close pi; result
 
 let alreadyImported = ref ([] : string list)
   
 let process_file f  =
   alreadyImported := f :: !alreadyImported;
   let cmds = parseFile f in
-  print_string (string_of_toplevel cmds)
+  print_string (string_of_file_input cmds)
 
 let main () = 
   let inFile = parseArgs() in
-  Stack.push 0 ws_stack;
+  Stack.push ws_stack 0;
   let _ = process_file inFile  in
   ()
 
 let () = set_max_boxes 1000
 let () = set_margin 67
-let res = 
-  Printexc.catch (fun () -> 
-    try main();0 
-    with Exit x -> x) 
-  ()
 let () = print_flush()
-let () = exit res
+let () = Exn.handle_uncaught ~exit:true main

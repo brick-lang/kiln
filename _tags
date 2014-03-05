@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9c866ca7b810def28ae9b1cf1e0ac0af)
+# DO NOT EDIT (digest: 611e7e29471808797d7addf289faebf3)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -14,15 +14,15 @@
 "_darcs": -traverse
 "_darcs": not_hygienic
 # Executable kiln
-<src/driver.{native,byte}>: pkg_core
-<src/driver.{native,byte}>: pkg_str
-<src/driver.{native,byte}>: pkg_threads
-<src/driver.{native,byte}>: pkg_res
-<src/driver.{native,byte}>: pkg_cfg
+"src/driver.byte": pkg_cfg
+"src/driver.byte": pkg_core
+"src/driver.byte": pkg_res
+"src/driver.byte": pkg_str
+"src/driver.byte": pkg_threads
+<src/*.ml{,i}>: pkg_cfg
 <src/*.ml{,i}>: pkg_core
+<src/*.ml{,i}>: pkg_res
 <src/*.ml{,i}>: pkg_str
 <src/*.ml{,i}>: pkg_threads
-<src/*.ml{,i}>: pkg_res
-<src/*.ml{,i}>: pkg_cfg
 # OASIS_STOP
 true: use_menhir

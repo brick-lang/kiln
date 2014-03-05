@@ -1,15 +1,13 @@
 open Core
 
-type type_annot = 
-    | Unknown_Type
-    | Known_Type of string
+type type_annot = string option
 
 type variable = 
     | Ref_Var of string * type_annot
     | Plain_Var of string * type_annot
 
 (* The function prototype (declaration) *)
-type proto = Prototype of string * variable list
+type proto = Prototype of variable list
 
 type expr = 
   | Integer of int
@@ -18,27 +16,33 @@ type expr =
   | Bool    of bool
   | Ident   of string
   | Block   of expr list
-  | Lambda  of func
-
-(* The function type *)
-and func = Function of proto * expr
+  | Function of string * variable list * expr
 
 type call =
-    | Forked_Call of expr
-    | Pipelined_Call of expr
-    | No_Call
+  | Forked_Call of expr
+  | Pipelined_Call of expr
+  | No_Call
 
 type binding = Binding of variable * expr * call (* var = expr *)
-
-type toplevel =
-  (* | Extern     of proto *)
-  | TopFun of func
 
 type stmt =
   | Top        of expr
   | Let        of binding list * expr (* binding list, body *)
   | Sep 
   | End
+
+
+
+let string_of_type_annot ta =
+  match ta with
+  | None -> ""
+  | Some(s) -> Printf.sprintf " : %s" s
+
+
+let string_of_variable v =
+  match v with
+  | Ref_Var(s, t) -> Printf.sprintf "!%s%s" s (string_of_type_annot t)
+  | Plain_Var(s, t) -> Printf.sprintf "%s%s" s (string_of_type_annot t)
 
 
 let rec string_of_expr e =
@@ -52,19 +56,13 @@ let rec string_of_expr e =
       let bls = (Core.Std.List.map es ~f:(fun x -> string_of_expr x)) in
       let string_of_exprs = Core.Std.List.fold_left bls ~init:"" ~f:(fun x y -> x ^ y ^ "; ") in 
       Printf.sprintf "{ %s}" string_of_exprs
-  | Lambda(f) -> "lambda"
+  | Function(name, var_list, block) -> 
+    let exs = (Core.Std.List.map var_list ~f:(fun x -> string_of_variable x)) in
+    let rec string_of_vars = Core.Std.List.fold_left exs ~init:"" ~f:(fun x y -> x ^ (if x = "" then "" else ",") ^ y) in
+    if name = "" 
+    then Printf.sprintf "|%s| -> %s" string_of_vars (string_of_expr block)
+    else Printf.sprintf "fn %s(%s) -> %s" name string_of_vars (string_of_expr block)
     
-
-let string_of_type_annot ta =
-    match ta with
-    | Unknown_Type -> ""
-    | Known_Type(s) -> Printf.sprintf ": %s" s
-
-
-let string_of_variable v =
-    match v with
-    | Ref_Var(s, t) -> Printf.sprintf "!%s %s" s (string_of_type_annot t)
-    | Plain_Var(s, t) -> Printf.sprintf "%s %s" s (string_of_type_annot t)
 
 let string_of_call c =
     match c with 
@@ -74,8 +72,7 @@ let string_of_call c =
 
 let string_of_binding b = 
   match b with 
-  | Binding(v,e,c) -> Printf.sprintf "%s = %s -> %s" 
-                        (string_of_variable v) (string_of_expr e) (string_of_call c)
+  | Binding(v,e,c) -> Printf.sprintf "%s = %s -> %s" (string_of_variable v) (string_of_expr e) (string_of_call c)
 
 let string_of_stmt s = 
   match s with
@@ -86,19 +83,8 @@ let string_of_stmt s =
   | Top(e) -> string_of_expr e
   | _ -> assert false
 
-let string_of_proto (p : proto) = 
-  match p with
-  | Prototype(s, vl) -> 
-  let exs = (Core.Std.List.map vl ~f:(fun x -> string_of_variable x)) in
-  let rec string_of_vars =  Core.Std.List.fold_left exs ~init:"" ~f:(fun x y -> x ^ y ^ ",") in
-  Printf.sprintf "%s(%s)" s string_of_vars
 
-let string_of_func (f : func) =
-  match f with
-  | Function(p, e) -> 
-  Printf.sprintf "fn %s -> %s" (string_of_proto p) (string_of_expr e)
-
-let string_of_toplevel (top : toplevel) =
+let rec string_of_file_input top =
   match top with
-  | TopFun(f) -> string_of_func f
-  | _ -> assert false
+  | [] -> ""
+  | x::xs -> (string_of_expr x) ^"\n"^(string_of_file_input xs)
