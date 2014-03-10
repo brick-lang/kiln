@@ -17,7 +17,7 @@ let glaze =
     (fun (* file *) () -> () )
 
 let command =
-  Command.group ~summary:"Manipulate dates"
+  Command.group ~summary:"The Brick compiler and interpreter"
     [ "fire", fire; "glaze",  glaze]
 
 let () = Command.run command
