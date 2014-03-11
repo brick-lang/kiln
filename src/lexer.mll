@@ -23,9 +23,11 @@ let ws_count : int ref = ref 0
 let ws_stack : int Stack.t = Stack.create ()
 let ws_flag : bool ref = ref false
 
+let () = Stack.push ws_stack 0           (* Prime the lexer *)
 let rcom_count = ref 0
 
 exception Unexpected_token
+
 }
 
 
