@@ -19,6 +19,7 @@ let ws_count = ref 0
 let (ws_stack : int Stack.t) = Stack.create ()
 let ws_flag : bool ref = ref false
 
+let rcom_count = ref 0
 }
 
 
@@ -38,9 +39,12 @@ let binnum = "0b" bindigit+
 let newline = '\r' | '\n' | "\r\n"
 let ident = ['a'-'z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
 let type_re = ['A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
+let rcom_start = "#{"
+let rcom_end = "}#"
 
 rule main = parse
   | "#="     { ws_flag := false; Printf.printf "BLOCK COMMENT BEGIN\n"; block_comment lexbuf }
+  | rcom_start     { ws_flag := false; Printf.printf "RECURSIVE COMMENT BEGIN\n"; rcom_count := !rcom_count + 1; recursive_comment lexbuf }
   | '#'      { ws_flag := false; Printf.printf "LINE COMMENT BEGIN\n"; comment lexbuf }
   | '|'      { ws_flag := false; PIPE }
   | '='      { ws_flag := false; EQUALS }
@@ -71,6 +75,7 @@ rule main = parse
 and indent = parse
  (* Comment starts *)
   | "#="  { Printf.printf "BLOCK COMMENT BEGIN\n"; block_comment lexbuf }
+  | rcom_start {Printf.printf "RECURSIVE COMMENT BEGIN\n"; rcom_count := !rcom_count + 1; recursive_comment lexbuf }
   | '#'   { Printf.printf "LINE COMMENT BEGIN\n"; comment lexbuf }
 
  (* Whitespace *)
@@ -106,3 +111,14 @@ and block_comment = parse
   | "#=" { Printf.printf "BLOCK COMMENT END\n"; main lexbuf }
   | _    { block_comment lexbuf }
 
+
+(* Support a nested comment syntax! Like OCaml! *)
+and recursive_comment = parse
+  | rcom_start { ws_flag := false; Printf.printf "RECURSIVE COMMENT GOES DEEPER\n"; rcom_count := !rcom_count + 1; recursive_comment lexbuf }
+  | rcom_end { ws_flag := false; Printf.printf "RECURSIVE COMMENT COMES UP\n"; rcom_count := !rcom_count - 1; 
+        if !rcom_count > 0 then
+              recursive_comment lexbuf
+        else
+              main lexbuf
+        end }
+  | _    { recursive_comment lexbuf }
