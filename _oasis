@@ -11,4 +11,4 @@ Executable kiln
   Path:           src
   BuildTools:     menhir, ocamlbuild
   BuildDepends:   core, str, threads, res, cfg
-  MainIs:         kiln.ml
+  MainIs:         driver.ml
