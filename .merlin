@@ -1,0 +1,8 @@
+S src
+B _build/src
+PKG cmdliner
+PKG core
+PKG async
+PKG core_extended
+PKG llvm
+EXT nonrec
