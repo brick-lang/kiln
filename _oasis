@@ -4,8 +4,6 @@ Version:     0.1
 Synopsis:    The reference compiler for the Brick language
 Authors:     Katherine Whitlock
 License:     BSD-3-clause
-Plugins:     DevFiles (0.4)
-XDevFilesEnableMakefile: false
 
 Executable kiln
   Path:           src

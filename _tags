@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 611e7e29471808797d7addf289faebf3)
+# DO NOT EDIT (digest: fe0c9a9901b857a2258d744382cb1509)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -14,11 +14,11 @@
 "_darcs": -traverse
 "_darcs": not_hygienic
 # Executable kiln
-"src/driver.byte": pkg_cfg
-"src/driver.byte": pkg_core
-"src/driver.byte": pkg_res
-"src/driver.byte": pkg_str
-"src/driver.byte": pkg_threads
+"src/kiln.byte": pkg_cfg
+"src/kiln.byte": pkg_core
+"src/kiln.byte": pkg_res
+"src/kiln.byte": pkg_str
+"src/kiln.byte": pkg_threads
 <src/*.ml{,i}>: pkg_cfg
 <src/*.ml{,i}>: pkg_core
 <src/*.ml{,i}>: pkg_res
