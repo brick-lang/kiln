@@ -15,3 +15,15 @@ Here's some of the commands:
 * `kiln format` - run an automatic text formatting tool over the project, making sure that all source is compliant with the project's style specifications.
 * `kiln run file` - run the file using the JIT interpreter
 
+#Building the Kiln
+
+First, [install OPAM and initialize it.](http://opam.ocaml.org/doc/Quick_Install.html)
+
+```bash
+opam install core async menhir oasis
+oasis setup
+ocaml setup.ml -configure
+ocaml setup.ml -build
+```
+
+Note: This builds it in the current folder, and will not add it to your system path.
