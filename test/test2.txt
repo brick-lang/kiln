@@ -1,0 +1,5 @@
+fn test
+    true
+
+fn main
+    0
