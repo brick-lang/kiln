@@ -20,7 +20,7 @@ Here's some of the commands:
 First, [install OPAM and initialize it.](http://opam.ocaml.org/doc/Quick_Install.html)
 
 ```bash
-opam install core async menhir oasis
+opam install core async menhir oasis cfg res
 oasis setup
 ocaml setup.ml -configure
 ocaml setup.ml -build
