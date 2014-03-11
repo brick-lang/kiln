@@ -125,6 +125,5 @@ and recursive_comment = parse
             begin
               Printf.printf "RECURSIVE COMMENT ENDS\n";
               main lexbuf
-            end
-        end }
+            end}
   | _    { recursive_comment lexbuf }
