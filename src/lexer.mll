@@ -17,11 +17,12 @@ let symbolTable = String.Table.create () ~size:1024 ~growth_allowed:false
 let _ = List.iter ~f:(fun (str,f) -> ignore (String.Table.add symbolTable ~key:str ~data:f)) reservedWords
 
 
-
 (* our white-space counter, stack, and associated functions *)
 let ws_count : int ref = ref 0
 let ws_stack : int Stack.t = Stack.create ()
 let ws_flag : bool ref = ref false
+
+let () = Stack.push ws_stack 0           (* Prime the lexer *)
 
 exception Unexpected_token
 
