@@ -20,6 +20,7 @@ let parse_error s =
 
 %token  LET  /* variable binding*/
 %token  FUNCTION /* function creation */
+%token  RETURN
 
 /* ops */
 %token  PIPE           /* | */
@@ -31,10 +32,10 @@ let parse_error s =
 %token  SPACESHIP      /* <=> */
 %token  BANG           /* ! */
 %token  PLUS
-%token MINUS
-%token ASTERISK
-%token FWD_SLASH
-%token BCK_SLASH
+%token  MINUS
+%token  ASTERISK
+%token  FWD_SLASH
+%token  BCK_SLASH
 
 
 %token INDENT UNDENT
@@ -54,6 +55,7 @@ let parse_error s =
 %token <string> STRING
 %token <string> TYPE
 %token <string> IDENT
+%token <bool> BOOL
 
 /* parens */
 %token LPAREN RPAREN
@@ -78,19 +80,21 @@ let parse_error s =
   delim x = X  { x }
 
 file_input:
-  | s = newline_or_stmt EOF { s }
+  | s = compound_stmt EOF { s }
 
-newline_or_stmt:
+compound_stmt:
   | (* Empty *) { [ ] }
-  | NEWLINE n = newline_or_stmt { n }
-  | s = stmt n = newline_or_stmt  { s::n }
+  | NEWLINE n = compound_stmt { n }
+  | s = stmt n = compound_stmt  { s::n }
 
-stmt: e = expr{ e }
+stmt: 
+  | e = expr{ e }
 
 expr:
-  | i = INTEGER { Integer(i) }
-  | f = FLOAT   { Float(f)   }
+  | i = INTEGER { Integer(i, Some("Integer")) }
+  | f = FLOAT   { Float(f, Some("Float"))   }
   | i = IDENT   { Ident(i)   }
+  | b = BOOL    { Bool(b, Some("Bool")) }
   | f = func    { f }
 
 func: 
@@ -132,8 +136,8 @@ type_annot:
 
 block: 
   /* a block is either expr, { expr }, or INDENT expr UNDENT */
-  | LCURLY te = term_expr* RCURLY { Block(te) }
-  | INDENT te = term_expr* UNDENT { Block(te) }
+  | LCURLY te = term_expr* RCURLY { Block(te, None) }
+  | INDENT te = term_expr* UNDENT { Block(te, None) }
   | e = expr { e } 
 
 sep:
@@ -153,9 +157,9 @@ expr:
   | LPAREN expr              { parse_error "expected ')'" }
 
 toplevel:
-  | s = statement; terminator { s }
+  | s = statement terminator { s }
   | t = terminator { t }
-  ;
+
 
 statement:
   | e = expr        { Expression (Function (Prototype ("", [||]), e)) }

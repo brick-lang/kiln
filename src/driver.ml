@@ -19,6 +19,7 @@ open Lexer
 open Format
 open Support.Error
 open Ast
+open Printer
 open Core.Std
 
 exception Error of string * int * int * string
