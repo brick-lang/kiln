@@ -25,3 +25,4 @@
 <src/*.ml{,i}>: pkg_str
 <src/*.ml{,i}>: pkg_threads
 # OASIS_STOP
+true: use_menhir

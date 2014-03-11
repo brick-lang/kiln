@@ -19,6 +19,7 @@ let glaze =
 
 let command =
   Command.group ~summary:"The Brick compiler and interpreter"
-    [ "fire", fire; "glaze",  glaze]
+    [ ("fire", fire); 
+      ("glaze",  glaze) ]
 
 let () = Command.run command
