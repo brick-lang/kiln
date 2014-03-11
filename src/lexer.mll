@@ -112,15 +112,19 @@ and block_comment = parse
   | _    { block_comment lexbuf }
 
 
-(* Support a nested comment syntax! Like OCaml! *)
+(* Support a nested comment syntax! (* Like OCaml! *) *)
 and recursive_comment = parse
   | rcom_start { ws_flag := false; Printf.printf "RECURSIVE COMMENT GOES DEEPER\n"; rcom_count := !rcom_count + 1; recursive_comment lexbuf }
   | rcom_end { ws_flag := false; rcom_count := !rcom_count - 1; 
         if !rcom_count > 0 then
-            Printf.printf "RECURSIVE COMMENT COMES UP\n"; 
-            recursive_comment lexbuf
+            begin
+              Printf.printf "RECURSIVE COMMENT COMES UP\n"; 
+              recursive_comment lexbuf
+            end
         else
-            Printf.printf "RECURSIVE COMMENT ENDS\n";
-            main lexbuf
+            begin
+              Printf.printf "RECURSIVE COMMENT ENDS\n";
+              main lexbuf
+            end
         end }
   | _    { recursive_comment lexbuf }
