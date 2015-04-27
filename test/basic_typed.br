@@ -1,0 +1,7 @@
+fn main(argn:Int, argv:String) -> Unit
+  let 
+    x : Int = 4
+  in 
+    6
+  end
+end

@@ -1,0 +1,7 @@
+fn main
+  let 
+    x = 0
+  in 
+    2
+  end
+end
