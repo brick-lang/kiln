@@ -52,17 +52,22 @@ let get_next_token (lexer : Sedlexing.lexbuf -> Parser.token) =
 module MI = Parser.MenhirInterpreter
 
 let parse lexbuf lexer parser =
-  let rec parse_loop lexbuf read_token result needs_error_handling =
-    match result with
+  let rec parse_loop lexbuf read_token checkpoint needs_error_handling =
+    match checkpoint with
     | MI.InputNeeded env ->
         if needs_error_handling then
           Core.Std.Queue.dequeue_apply Parser.Error.errors
             ~f:(fun e -> Location.print_error lexbuf (Parser.Error.prepare_error e));
         let token = read_token lexbuf in (* Get a new token from the lexer *)
-        let result = MI.offer env token in
-        parse_loop lexbuf read_token result false
+        let checkpoint = MI.offer checkpoint token in
+        parse_loop lexbuf read_token checkpoint false
+    | MI.Shifting _
+    | MI.AboutToReduce _ ->
+       let checkpoint = MI.resume checkpoint in
+       parse_loop lexbuf read_token checkpoint false
     | MI.HandlingError env ->
-        parse_loop lexbuf read_token (MI.handle env) true
+       (* The parser has suspended itself because of a syntax error. Stop. *)
+        parse_loop lexbuf read_token (MI.resume checkpoint) true
     | MI.Accepted v -> Some v
     | MI.Rejected -> None
   in parse_loop lexbuf (get_next_token lexer) parser false
@@ -70,7 +75,7 @@ let parse lexbuf lexer parser =
 let parse_file inFile =
   let pi = open_in inFile in
   let lexbuf = Sedlexing.Utf8.from_channel pi in
-  let file_parser = Parser.file_input_incremental () in
+  let file_parser = Parser.Incremental.file_input () in
   Location.init lexbuf inFile;
   let result =  parse lexbuf Lexer.main file_parser in
   Parsing.clear_parser ();

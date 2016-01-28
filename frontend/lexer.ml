@@ -7,7 +7,7 @@ open Parser
 open Core.Std
 
 type error =
-  | Illegal_character of bytes * Location.t
+  | Illegal_character of string * Location.t
   | Illegal_escape of string * Location.t
   | Unterminated_comment of Location.t
   | Unterminated_string of Location.t
@@ -27,7 +27,7 @@ let prepare_error err =
   let errorf = Location.errorf ~header:"Lexer Error" in
   match err with
   | Illegal_character (c,location) ->
-      errorf ~location "Illegal character (%s)" (String.escaped c)
+      errorf ~location "Illegal character (%s)" (Caml.Bytes.escaped c)
   | Illegal_escape (s,location) ->
       errorf ~location "Illegal backslash escape in string or character (%s)" s
   | Unterminated_comment (location) ->
@@ -83,7 +83,7 @@ let _ =  List.iter ~f:(fun (str,f) ->
 
 (* To buffer string literals *)
 
-let initial_string_buffer = Bytes.create 256
+let initial_string_buffer = Caml.Bytes.create 256
 let string_buff = ref initial_string_buffer
 let string_index = ref 0
 
@@ -92,12 +92,12 @@ let reset_string_buffer () =
   string_index := 0
 
 let store_string_char c =
-  if !string_index >= Bytes.length !string_buff then begin
-    let new_buff = Bytes.create @@ Bytes.length (!string_buff) * 2 in
-    Bytes.blit !string_buff 0 new_buff 0 @@ Bytes.length !string_buff;
+  if !string_index >= Caml.Bytes.length !string_buff then begin
+    let new_buff = Caml.Bytes.create @@ Caml.Bytes.length (!string_buff) * 2 in
+    Caml.Bytes.blit !string_buff 0 new_buff 0 @@ Caml.Bytes.length !string_buff;
     string_buff := new_buff
   end;
-  Bytes.unsafe_set !string_buff !string_index c;
+  ignore (Caml.Bytes.unsafe_set !string_buff !string_index c);
   incr string_index
 
 let store_string s =
@@ -109,7 +109,7 @@ let store_lexeme lexbuf =
   store_string @@ Lexing.lexeme lexbuf
 
 let get_stored_string () =
-  let s = Bytes.sub_string !string_buff 0 !string_index in
+  let s = Caml.Bytes.sub_string !string_buff 0 !string_index in
   string_buff := initial_string_buffer;
   s
 
@@ -136,19 +136,22 @@ let char_for_decimal_code lexbuf i =
           ((Sedlexing.lexeme_char lexbuf (i+2)) - 48) in
   if (c < 0 || c > 255) then
     if in_comment () then 'x'
-    else (
+    else begin
       handle_error lexbuf (Illegal_escape (Sedlexing.Utf8.lexeme lexbuf, Location.curr lexbuf));
-      raise Error)
+      raise Error
+    end
   else Char.of_int_exn c
 
 let char_for_hexadecimal_code lexbuf i =
   let d1 = Char.to_int (Lexing.lexeme_char lexbuf i) in
-  let val1 = if d1 >= 97 then d1 - 87
+  let val1 =
+    if d1 >= 97 then d1 - 87
     else if d1 >= 65 then d1 - 55
     else d1 - 48
   in
   let d2 = Char.to_int (Lexing.lexeme_char lexbuf (i+1)) in
-  let val2 = if d2 >= 97 then d2 - 87
+  let val2 =
+    if d2 >= 97 then d2 - 87
     else if d2 >= 65 then d2 - 55
     else d2 - 48
   in
