@@ -40,8 +40,8 @@ let unclosed opening_name opening_sp opening_ep closing_name closing_sp closing_
 let unexpected name opening closing  =
   Core.Std.Queue.enqueue Error.errors (Error.Not_expecting(symbol_rloc opening closing, name))
 
-let expected name opening closing  =
-  Core.Std.Queue.enqueue Error.errors (Error.Expecting(symbol_rloc opening closing, name))
+let expected name opening closing ?(suggestion="") =
+  Core.Std.Queue.enqueue Error.errors (Error.Expecting(symbol_rloc opening closing, name, suggestion))
 
 %}
 
@@ -274,9 +274,9 @@ expr:
   | LPAREN t = expr_comma_list RPAREN %prec below_COMMA 
       { make_expression (Expression.Tuple (List.rev t)) $startpos $endpos }
   | f = anon_func { f }
-  | error
-    { expected "an expression" $startpos $endpos;
-      make_expression Expression.Error $startpos $endpos }
+  (* | error *)
+  (*   { expected "an expression" $startpos $endpos; *)
+  (*     make_expression Expression.Error $startpos $endpos } *)
 
 
 simple_expr:
@@ -316,6 +316,9 @@ pattern:
 
 simple_pattern: 
   | v = IDENT { make_pattern (Pattern.Variable (mkrhs v $startpos(v) $endpos(v))) $startpos $endpos }
+  | UNDERSCORE { make_pattern Pattern.Any $startpos $endpos }
+  | error { expected "a pattern" $startpos $endpos ~suggestion:"use an '_' or '()'";
+	    make_pattern Pattern.Error $startpos $endpos }
 
 
 (* Core types *)

@@ -1,0 +1,5 @@
+fn main
+  |_| -> Int
+    2
+  end
+end

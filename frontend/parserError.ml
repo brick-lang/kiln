@@ -14,7 +14,7 @@
 
 type error =
   | Unmatched of Location.t * string * Location.t * string
-  | Expecting of Location.t * string
+  | Expecting of Location.t * string * string
   | Not_expecting of Location.t * string
   | Applicative_path of Location.t
   | Variable_in_scope of Location.t * string
@@ -36,8 +36,13 @@ let prepare_error error =
         ]
         "'%s' expected" closing
 
-  | Expecting (location, nonterm) ->
+  | Expecting (location, nonterm, suggestion) ->
+    if Core.Std.String.is_empty suggestion then
       errorf ~location "Expected %s." nonterm
+    else
+      errorf ~location "Expected %s." nonterm ~sub_errors:[
+        errorf ~location:location "Maybe you meant to use %s?" suggestion
+      ]
 
   | Not_expecting (location, nonterm) ->
       errorf ~location "Unexpected %s." nonterm
@@ -68,4 +73,4 @@ let location = function
   | Variable_in_scope(l,_)
   | Other l
   | Not_expecting (l, _)
-  | Expecting (l, _) -> l
+  | Expecting (l, _,_) -> l

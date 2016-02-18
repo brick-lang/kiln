@@ -235,15 +235,20 @@ type error = {
   sub_errors: error list;
 }
 
-let print_error lb { header; message; location; _} =
-  let header () : unit = 
+let rec print_error lb ?(sub_error=false) { header; message; location; sub_errors} =
+  let header_helper () : unit = 
     Console.Ansi.printf [`Red] " Error: ";
     Console.Ansi.printf [`Bright] "%s" header;
     ()
   in
-  highlight_textutils header lb location;
+  if not sub_error then
+    highlight_textutils header_helper lb location;
   (match message with Some m -> print_endline m | None -> ());
-  print_newline ()
+  if not @@ List.is_empty sub_errors then begin
+    ignore @@ List.map ~f:(print_error lb ~sub_error:true) sub_errors;
+    print_newline ()
+  end
+
 
 
 let errorf ~header ?(location = none) ?(sub_errors = []) =
