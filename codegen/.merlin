@@ -1,0 +1,3 @@
+PKG ollvm
+FLG -ppx ppx_monadic
+REC

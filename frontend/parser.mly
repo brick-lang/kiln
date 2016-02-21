@@ -16,7 +16,7 @@ let symbol_gloc start_pos end_pos = {
   Location.loc_ghost = true;
 };;
 
-let make_type       d sp ep = Type.make      ~location:(symbol_rloc sp ep) d
+let make_type       d sp ep = Type.make          ~location:(symbol_rloc sp ep) d
 let make_pattern    d sp ep = Pattern.make       ~location:(symbol_rloc sp ep) d
 let make_expression d sp ep = Expression.make    ~location:(symbol_rloc sp ep) d
 let make_structure  d sp ep = StructureItem.make ~location:(symbol_rloc sp ep) d
@@ -248,10 +248,6 @@ labeled_simple_pattern:
   | s = simple_pattern           { ("", None, s) }
 
 
-pattern_var:
-  | i = IDENT   { make_pattern (Pattern.Variable (mkrhs i 1)) }
-  | UNDERSCORE  { make_pattern Pattern.Any }
-
 (* This rule is for default values. e.g. *)
 (* fn foo( bar = baz ) *)
 (*             ^~~~~^  *)
@@ -287,6 +283,7 @@ simple_expr:
   | LPAREN e = expr error 
     { unclosed "{" $startpos($1) $endpos($1) "}" $startpos($3) $endpos($3);
       make_expression Expression.Error $startpos $endpos }
+  | v = IDENT { make_expression (Expression.Ident (mkrhs (Fqident.parse v) $startpos(v) $endpos(v))) $startpos $endpos }
 
 block:
   (* a block is either expr, { seq_expr }, or BEGIN seq_expr END *)
@@ -318,7 +315,7 @@ simple_pattern:
   | v = IDENT { make_pattern (Pattern.Variable (mkrhs v $startpos(v) $endpos(v))) $startpos $endpos }
   | UNDERSCORE { make_pattern Pattern.Any $startpos $endpos }
   | error { expected "a pattern" $startpos $endpos ~suggestion:"use an '_' or '()'";
-	    make_pattern Pattern.Error $startpos $endpos }
+  	    make_pattern Pattern.Error $startpos $endpos }
 
 
 (* Core types *)

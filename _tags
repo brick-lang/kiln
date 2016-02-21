@@ -4,6 +4,9 @@ true: use_menhir
 # Sedlex ppx
 <frontend/lexer.ml>: ppx_sedlex
 
+# Monadic ppx
+<codegen/codegen.ml>: ppx_monadic
+
 # Metaquot brings in a whole bunch of stuff that creates namespace clashes
 <sedlex/src/syntax/ppx_sedlex.ml{,i}>: pkg_ppx_tools.metaquot
 <sedlex/src/syntax/ppx_sedlex.{native,byte}>: pkg_ppx_tools.metaquot

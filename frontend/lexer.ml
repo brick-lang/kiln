@@ -23,17 +23,17 @@ let last_lexer_error : error option ref = ref None;;
 let is_illegal_char_error = (function Illegal_character(_,_) -> true | _ -> false);;
 
 let prepare_error err =
-  let error = Location.error ~header:"Lexer Error" in
-  let errorf = Location.errorf ~header:"Lexer Error" in
+  let error = Location.error ~header:"Lexical error" in
+  let errorf = Location.errorf ~header:"Lexical error" in
   match err with
   | Illegal_character (c,location) ->
-      errorf ~location "Illegal character (%s)" (Caml.Bytes.escaped c)
+      errorf ~location "Illegal character \"%s\"." c
   | Illegal_escape (s,location) ->
-      errorf ~location "Illegal backslash escape in string or character (%s)" s
+      errorf ~location "Illegal backslash escape in string or character \"%s\"." s
   | Unterminated_comment (location) ->
-      error ~location "Comment not terminated"
+      error ~location "Comment is unterminated."
   | Unterminated_string location ->
-      error ~location "String literal not terminated"
+      error ~location "String literal is unterminated."
   | Unterminated_string_in_comment (_, location) ->
       (* let msg = fun () ->  *)
       (*    print_string "This comment contains an unterminated string literal" *)
@@ -41,7 +41,7 @@ let prepare_error err =
       (* Location.print_error ~msg:msg lexbuf loc *)
       error ~location ""
   | Keyword_as_label (kwd,location) ->
-      errorf ~location "`%s' is a keyword, it cannot be used as label name" kwd
+      errorf ~location "\"%s\" is a keyword, it cannot be used as label name" kwd
   | Literal_overflow (ty,location) ->
       errorf  ~location "Integer literal exceeds the range of representable \
                          integers of type %s" ty
@@ -272,11 +272,13 @@ let rec main lexbuf =
     end
 
   | type_re -> let t = Sedlexing.Utf8.lexeme lexbuf in TYPE t 
+
   | ident -> let i = Sedlexing.Utf8.lexeme lexbuf in begin
       match Hashtbl.find keyword_table i with
       | Some(tok) -> tok
       | None ->  IDENT i
     end
+
   | eof -> EOF 
 
   | _ ->

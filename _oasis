@@ -51,6 +51,8 @@ Library codegen
   Path:    codegen
   Install: false
   BuildDepends: frontend,
+                ppx_monadic,
+                ollvm,
                 llvm,
                 llvm.analysis
 

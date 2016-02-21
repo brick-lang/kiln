@@ -25,3 +25,4 @@ PKG gen
 PKG ppx_tools.metaquot
 PKG menhirLib
 EXT nonrec
+FLG -ppx /home/kate/github/kiln/ppx_sedlex.native

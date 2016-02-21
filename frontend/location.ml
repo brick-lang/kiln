@@ -72,7 +72,11 @@ let highlight_textutils (header: unit -> unit ) lb loc =
   (* Char 0 is at offset -lb.offset in lb.lex_buffer. *)
   let pos0 = -lb.offset in
   (* Do nothing if the buffer does not contain the whole phrase. *)
-  if pos0 < 0 then raise Exit;
+  if pos0 < 0 then begin
+    print_endline @@ string_of_int pos0;
+    print_endline @@ string_of_int lb.len;
+    raise Exit
+  end;
   let end_pos = lb.len - pos0 - 1 in
   (* Determine line numbers for the start and end points *)
   let line_start = ref 0 and line_end = ref 0 in

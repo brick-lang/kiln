@@ -126,14 +126,14 @@ let create_hashtable size init =
 (* File copy *)
 
 let copy_file ic oc =
-  let buff = String.create 0x1000 in
+  let buff = Bytes.create 0x1000 in
   let rec copy () =
     let n = input ic buff 0 0x1000 in
     if n = 0 then () else (output oc buff 0 n; copy())
   in copy()
 
 let copy_file_chunk ic oc len =
-  let buff = String.create 0x1000 in
+  let buff = Bytes.create 0x1000 in
   let rec copy n =
     if n <= 0 then () else begin
       let r = input ic buff 0 (min n 0x1000) in
@@ -143,7 +143,7 @@ let copy_file_chunk ic oc len =
 
 let string_of_file ic =
   let b = Buffer.create 0x10000 in
-  let buff = String.create 0x1000 in
+  let buff = Bytes.create 0x1000 in
   let rec copy () =
     let n = input ic buff 0 0x1000 in
     if n = 0 then Buffer.contents b else
@@ -155,7 +155,7 @@ let string_of_file ic =
 (* Reading from a channel *)
 
 let input_bytes ic n =
-  let result = String.create n in
+  let result = Bytes.create n in
   really_input ic result 0 n;
   result
 ;;
@@ -234,9 +234,9 @@ module LongString = struct
     let tbl_size = str_size / Sys.max_string_length + 1 in
     let tbl = Array.make tbl_size "" in
     for i = 0 to tbl_size - 2 do
-      tbl.(i) <- String.create Sys.max_string_length;
+      tbl.(i) <- Bytes.create Sys.max_string_length;
     done;
-    tbl.(tbl_size - 1) <- String.create (str_size mod Sys.max_string_length);
+    tbl.(tbl_size - 1) <- Bytes.create (str_size mod Sys.max_string_length);
     tbl
 
   let length tbl =
@@ -261,7 +261,7 @@ module LongString = struct
 
   let unsafe_blit_to_string src srcoff dst dstoff len =
     for i = 0 to len - 1 do
-      String.unsafe_set dst (dstoff + i) (get src (srcoff + i))
+      Bytes.unsafe_set dst (dstoff + i) (get src (srcoff + i))
     done
 
   let input_bytes ic len =

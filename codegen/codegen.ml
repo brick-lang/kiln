@@ -3,10 +3,11 @@
  *===----------------------------------------------------------------------===*)
 
 open Core.Std
+open Util
 open ParseTree
-
+  
 exception Error of string
-
+  
 (* let context = Llvm.global_context ();;
    let the_module = Llvm.create_module context "my cool jit";;
    let builder = Llvm.builder context;;
@@ -41,8 +42,8 @@ exception Error of string
         ignore (String.Table.add named_values name param);
       ); 
     f;;
-
-
+    
+    
    let rec codegen_expr = function
    | Parsetree.Integer (num) -> Llvm.const_int (Llvm.i64_type context) num
    | Parsetree.Float (num)   -> Llvm.const_float (Llvm.float_type context) num
@@ -63,7 +64,7 @@ exception Error of string
    | Parsetree.Function (name, args, body, _) ->
     String.Table.clear named_values;
     let the_function = handle_proto name args in
-
+    
     (* Create a new basic block to start insertion into. *)
     let bb = Llvm.append_block context "entry" the_function in
     Llvm.position_at_end bb builder;
@@ -80,9 +81,44 @@ exception Error of string
     with e ->
       Llvm.delete_function the_function;
       raise e)
-
+      
    | Parsetree.Block(el) -> codegen_expr (match (List.last el) with Some e -> e | None -> assert false)
    | Parsetree.Ident(n) -> print_string "Whoops! IDENT"; assert false
    | _ -> assert false
 *)
+
+module M = struct
+  include Ollvm.Ez.Module
+  (* Flip for monads *)
+  let set_data_layout = flip set_data_layout
+  let set_target_triple = flip3 set_target_triple
+  let local = flip2 local
+  let locals = flip2 locals
+  let batch_locals = flip batch_locals
+  let global = flip2 global
+  let declaration = flip declaration
+  let definition = flip definition
+  let lookup_declaration = flip lookup_declaration
+  let lookup_definition = flip lookup_definition
+end
+module T = Ollvm.Ez.Type
+module Printer = Ollvm.Printer
+module ModuleMonad = StateMonad.Make(M)
+				    
+open Ollvm.Ez.Value
+open Ollvm.Ez.Instr
+open Ollvm.Ez.Block
+open ModuleMonad
+  
+let codegen_expr { ParseTree.Expression.variant = v; _}  =
+  let open ParseTree.Nodes.Expression in match v with
+  | Constant c -> begin
+      let open Asttypes in
+      match c with
+      | Const_int i -> (i32 i)
+      | Const_int32 i -> (i32 i)
+      | Const_int64 i -> (i64 i)
+    end
+  | _ -> assert false
+  
 
