@@ -109,18 +109,47 @@ module T = Ollvm.Ez.Type
 open ModuleMonad
 open ParseTree
 
-let rec codegen_expr { Expression.variant = v; _} : Value.t ModuleMonad.t =
+let env = String.Table.create ()
+
+let rec codegen_expr { Expression.variant = v; _} =
   let open Expression in
   match v with
-  | Constant c -> codegen_constant c
+  | Constant c -> return @@ lazy (Instr.ret @@ codegen_constant c)
+  | Ident { Asttypes.txt = i; _} ->
+      (* TODO: Extend qualifications *)
+      let i = Fqident.last i in
+      return @@ lazy (Instr.ret (String.Table.find_exn env i))
   | _ -> assert false
 
 and codegen_pattern { Pattern.variant = v; _} =
   let open Pattern in
   match v with
-  | Variable v -> Module.global T.i32 v.Asttypes.txt
+  | Variable v -> Module.local T.i32 v.Asttypes.txt
   | _ -> assert false
 
+and codegen_patterns ps =
+  let open Pattern in
+  (* TODO: Make this handle more than Variables *)
+  let ps = List.map ps ~f:(fun { Pattern.variant = v; _} ->
+      match v with
+      | Variable v -> v.Asttypes.txt
+      | _ -> assert false)
+  in
+  let%m vs = Module.locals T.i32 ps in
+  if List.contains_dup ps then
+    failwith "Multiple vars of same name."
+  else if List.length ps <> List.length vs then
+    failwith "Unable to bind all vars properly."
+  else begin
+      (* let curr_vars_set = String.Set.of_list @@ String.Table.keys env in *)
+      (* let new_vars_set = String.Set.of_list ps in *)
+      (* let inter = String.Set.inter curr_vars_set new_vars_set in *)
+      (* List.iter inter ~f:(fun v -> printf "Warning: Variable %s shadows previous declaration." v); *)
+    List.iter2_exn ps vs ~f:(fun p v -> String.Table.add_exn env ~key:p ~data:v);
+    return @@ lazy vs
+  end
+
+  
 and codegen_structure_item { StructureItem.variant = v; _} =
   let open StructureItem in
   match v with
@@ -136,19 +165,18 @@ and codegen_value_binding { ValueBinding.pattern = p;
                             ValueBinding.expression = e; _} =
   match (p,e) with
   | ({Pattern.variant = (Pattern.Variable {Asttypes.txt = v; _}); _},
-     {Expression.variant = (Expression.Function ([], fe)); _}) -> 
+     {Expression.variant = (Expression.Function (args, fe)); _}) -> 
       let%m m = get in begin
       match Module.lookup_declaration v m with
         | None -> do_;
             f_name <-- Module.global T.i32 v;
             f_entry <-- Module.local T.i32 "entry";
+            f_args <-- codegen_patterns args;
             f_val <-- codegen_expr fe;
             m <-- get;
             modify @@ Module.definition begin
-                Block.define f_name [] [
-                  Block.block f_entry [
-                    Instr.ret f_val
-                  ]
+                Block.define f_name f_args [
+                  Block.block f_entry [ f_val ]
                 ]
               end;
         | Some _ -> assert false
@@ -158,8 +186,8 @@ and codegen_value_binding { ValueBinding.pattern = p;
 and codegen_constant c =
     let open Asttypes in
     match c with
-    | Const_int i -> return @@ lazy (Value.i32 i)
-    | Const_float f -> return @@ lazy (Value.float f)
+    | Const_int i -> Value.i32 i
+    | Const_float f -> Value.float f
     | _ -> assert false
 
   

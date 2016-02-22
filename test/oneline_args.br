@@ -1,1 +1,1 @@
-fn foo(x:Int) -> x
+fn foo(x) -> x
