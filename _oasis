@@ -50,7 +50,7 @@ Library codegen
   Modules: Codegen
   Path:    codegen
   Install: false
-  BuildDepends: frontend,
+  BuildDepends: frontend, util,
                 ppx_monadic,
                 ollvm,
                 llvm,
@@ -59,7 +59,7 @@ Library codegen
 Executable kiln
   Path:           driver
   BuildDepends:   frontend, codegen,
-                  util, yojson
+                  util, yojson, ollvm
   MainIs:         kiln.ml
   CompiledObject: native
 

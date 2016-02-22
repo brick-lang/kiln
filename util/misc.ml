@@ -247,7 +247,7 @@ module LongString = struct
     tbl.(ind / Sys.max_string_length).[ind mod Sys.max_string_length]
 
   let set tbl ind c =
-    tbl.(ind / Sys.max_string_length).[ind mod Sys.max_string_length] <- c
+    Bytes.set tbl.(ind / Sys.max_string_length) (ind mod Sys.max_string_length) c
 
   let blit src srcoff dst dstoff len =
     for i = 0 to len - 1 do
@@ -336,3 +336,8 @@ let split s c =
 let cut_at s c =
   let pos = String.index s c in
   String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)
+
+let int_of_bool = function
+  | true -> 1
+  | false -> 0
+

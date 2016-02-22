@@ -49,7 +49,7 @@ let fmt_constant (x:constant) : json =
     | Const_string (s, _) -> 
         ["kind", `String "string"; "data", `String s]
     | Const_float (f) ->
-        ["kind", `String "float"; "data", `String f]
+        ["kind", `String "float"; "data", `Float f]
     | Const_int32 (i) ->
         ["kind", `String "int32"; "data", `Int (Int32.to_int i)]
     | Const_int64 (i) ->

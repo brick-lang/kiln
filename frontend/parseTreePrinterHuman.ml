@@ -38,7 +38,7 @@ let fmt_constant f = function
   | Const_string (s, None) -> fprintf f "Const_string(%S,None)" s;
   | Const_string (s, Some delim) ->
       fprintf f "Const_string (%S,Some %S)" s delim;
-  | Const_float (s) -> fprintf f "Const_float %s" s;
+  | Const_float (i) -> fprintf f "Const_float %f" i;
   | Const_int32 (i) -> fprintf f "Const_int32 %ld" i;
   | Const_int64 (i) -> fprintf f "Const_int64 %Ld" i;
 ;;

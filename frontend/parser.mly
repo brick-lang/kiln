@@ -100,7 +100,7 @@ let expected name opening closing ?(suggestion="") =
 %token <int> INT
 %token <int32> INT32
 %token <int64> INT64
-%token <string> FLOAT
+%token <float> FLOAT
 %token <string * string option> STRING
 %token <string> TYPE
 %token <string> IDENT

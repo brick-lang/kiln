@@ -4,7 +4,7 @@ let fire =
   Command.basic 
     ~summary:"Use kiln to compile the project"
     Command.Spec.( empty +> anon ("file" %: file ) ) 
-    (fun file () -> (* Driver.process_file file *) ())
+    (fun file () -> ignore @@ Driver.codegen_file file)
 
 let parse =
   Command.basic 

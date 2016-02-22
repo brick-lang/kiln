@@ -86,8 +86,8 @@ exception Error of string
    | Parsetree.Ident(n) -> print_string "Whoops! IDENT"; assert false
    | _ -> assert false
 *)
-
-module M = struct
+open Ollvm.Ez
+module Module = struct
   include Ollvm.Ez.Module
   (* Flip for monads *)
   let set_data_layout = flip set_data_layout
@@ -98,27 +98,68 @@ module M = struct
   let global = flip2 global
   let declaration = flip declaration
   let definition = flip definition
-  let lookup_declaration = flip lookup_declaration
-  let lookup_definition = flip lookup_definition
+  let lookup_declaration_exn = flip lookup_declaration
+  let lookup_declaration s e = try Some (lookup_declaration e s) with Not_found -> None
+  let lookup_definition_exn = flip lookup_definition
+  let lookup_definition s e = try Some (lookup_definition e s) with Not_found -> None
 end
-module T = Ollvm.Ez.Type
 module Printer = Ollvm.Printer
-module ModuleMonad = StateMonad.Make(M)
-				    
-open Ollvm.Ez.Value
-open Ollvm.Ez.Instr
-open Ollvm.Ez.Block
+module ModuleMonad = StateMonad.Make(Module)
+module T = Ollvm.Ez.Type
 open ModuleMonad
-  
-let codegen_expr { ParseTree.Expression.variant = v; _}  =
-  let open ParseTree.Nodes.Expression in match v with
-  | Constant c -> begin
-      let open Asttypes in
-      match c with
-      | Const_int i -> (i32 i)
-      | Const_int32 i -> (i32 i)
-      | Const_int64 i -> (i64 i)
-    end
-  | _ -> assert false
-  
+open ParseTree
 
+let rec codegen_expr { Expression.variant = v; _} : Value.t ModuleMonad.t =
+  let open Expression in
+  match v with
+  | Constant c -> codegen_constant c
+  | _ -> assert false
+
+and codegen_pattern { Pattern.variant = v; _} =
+  let open Pattern in
+  match v with
+  | Variable v -> Module.global T.i32 v.Asttypes.txt
+  | _ -> assert false
+
+and codegen_structure_item { StructureItem.variant = v; _} =
+  let open StructureItem in
+  match v with
+  | Value vb -> do_;
+      codegen_value_binding vb;
+      m <-- get;
+      ignore @@ Printer.modul (Printer.empty_env ()) Format.std_formatter m.Module.m_module;
+      return (lazy m)
+             
+  | _ -> assert false
+
+and codegen_value_binding { ValueBinding.pattern = p;
+                            ValueBinding.expression = e; _} =
+  match (p,e) with
+  | ({Pattern.variant = (Pattern.Variable {Asttypes.txt = v; _}); _},
+     {Expression.variant = (Expression.Function ([], fe)); _}) -> 
+      let%m m = get in begin
+      match Module.lookup_declaration v m with
+        | None -> do_;
+            f_name <-- Module.global T.i32 v;
+            f_entry <-- Module.local T.i32 "entry";
+            f_val <-- codegen_expr fe;
+            m <-- get;
+            modify @@ Module.definition begin
+                Block.define f_name [] [
+                  Block.block f_entry [
+                    Instr.ret f_val
+                  ]
+                ]
+              end;
+        | Some _ -> assert false
+      end
+  | _ -> assert false
+
+and codegen_constant c =
+    let open Asttypes in
+    match c with
+    | Const_int i -> return @@ lazy (Value.i32 i)
+    | Const_float f -> return @@ lazy (Value.float f)
+    | _ -> assert false
+
+  
