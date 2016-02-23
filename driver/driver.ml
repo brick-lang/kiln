@@ -88,7 +88,7 @@ let codegen_file inFile =
   let parsed = match parse_file inFile with Some s -> s | _ -> failwith "Malformed parsetree." in
   let codegened = List.hd_exn @@ List.map parsed ~f:(Codegen.codegen_structure_item) in
   let module_name = inFile |> Filename.basename |> Filename.chop_extension in
-  Ollvm.Ez.Module.init module_name ("x84_64", "pc", "linux-gnu") "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
+  Ollvm.Ez.Module.init module_name ("x86_64", "pc", "linux-gnu") "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
   |> Codegen.ModuleMonad.exec codegened
 
 

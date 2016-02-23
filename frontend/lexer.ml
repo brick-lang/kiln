@@ -226,7 +226,8 @@ let rec main lexbuf =
   | '*'      -> ASTERISK 
   | '/'      -> FWD_SLASH 
   | '\\'     -> BCK_SLASH 
-  | ','      -> COMMA 
+  | ','      -> COMMA
+  | '\''     -> QUOTE
   | '{'      -> LCURLY 
   | '}'      -> RCURLY 
   | '('      -> LPAREN 

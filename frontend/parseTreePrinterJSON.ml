@@ -54,6 +54,9 @@ let fmt_constant (x:constant) : json =
         ["kind", `String "int32"; "data", `Int (Int32.to_int i)]
     | Const_int64 (i) ->
         ["kind", `String "int64"; "data", `Int (Int64.to_int i)]
+    | Const_false -> ["kind", `String "bool"; "value", `Bool false]
+    | Const_true -> ["kind", `String "bool"; "value", `Bool true]
+    | Const_unit -> ["kind", `String "unit"; "value", `Null]
   in
   `Assoc ls;
 ;;

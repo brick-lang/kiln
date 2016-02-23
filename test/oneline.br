@@ -1,1 +1,1 @@
-fn foo -> 4
+fn main -> 4

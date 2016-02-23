@@ -40,7 +40,7 @@ let unclosed opening_name opening_sp opening_ep closing_name closing_sp closing_
 let unexpected name opening closing  =
   Core.Std.Queue.enqueue Error.errors (Error.Not_expecting(symbol_rloc opening closing, name))
 
-let expected name opening closing ?(suggestion="") =
+let expected ?(suggestion="") name opening closing =
   Core.Std.Queue.enqueue Error.errors (Error.Expecting(symbol_rloc opening closing, name, suggestion))
 
 %}
@@ -67,6 +67,7 @@ let expected name opening closing ?(suggestion="") =
 (* ops *)
 %token  PIPE           (* | *)
 %token  COMMA          (* , *)
+%token  QUOTE
 %token  EQUAL          (* = *)
 %token  LESS_THAN      (* < *)
 %token  GREATER_THAN   (* > *)
@@ -222,7 +223,8 @@ structure_item:
   | FUNCTION i = simple_pattern f = func_proto_body
     { make_structure (StructureItem.Value (ValueBinding.make ~location:(symbol_rloc $startpos $endpos) i f)) $startpos $endpos }
   (*| f = floating_attribute { make_structure(Pstr_attribute f) }*)
-  | error { expected "a top-level declaration" $startpos $endpos;
+  | error { 
+	expected "a top-level declaration" $startpos $endpos;
             make_structure StructureItem.Error $startpos $endpos }
 
 sep:
@@ -243,10 +245,11 @@ seq_expr:
   (* | error { Queue.add (Syntax_error.Expecting ((symbol_rloc $startpos $endpos), "expr")) errors; *)
   (*           make_expression Pexp_err $startpos $endpos } *)
 
+
+			      
 labeled_simple_pattern:
   | i = IDENT s = simple_pattern { (i, None, s) }
   | s = simple_pattern           { ("", None, s) }
-
 
 (* This rule is for default values. e.g. *)
 (* fn foo( bar = baz ) *)
@@ -261,14 +264,15 @@ let_pattern:
   | p = pattern { p }
   | p = pattern COLON c = core_type { make_pattern (Pattern.Constraint(p,c)) $startpos $endpos }
 
-expr:
+				    
+expr: 
   | s = simple_expr %prec below_SHARP { s }
+  | LPAREN t = expr COMMA tl = separated_nonempty_list(COMMA, expr) RPAREN %prec below_COMMA 
+      { make_expression (Expression.Tuple (t::tl)) $startpos $endpos }
   (*| c = call        { c }*)
   | l = let_main    { l }
   (* TODO: match *)
   (* tuples *)
-  | LPAREN t = expr_comma_list RPAREN %prec below_COMMA 
-      { make_expression (Expression.Tuple (List.rev t)) $startpos $endpos }
   | f = anon_func { f }
   (* | error *)
   (*   { expected "an expression" $startpos $endpos; *)
@@ -276,14 +280,15 @@ expr:
 
 
 simple_expr:
-  | c = constant 
-      { make_expression (Expression.Constant c) $startpos $endpos }
-  | b = block { b }
   | LPAREN e = expr RPAREN { e }
-  | LPAREN e = expr error 
-    { unclosed "{" $startpos($1) $endpos($1) "}" $startpos($3) $endpos($3);
-      make_expression Expression.Error $startpos $endpos }
+  (* | LPAREN e = expr error  *)
+  (*   { unclosed "{" $startpos($1) $endpos($1) "}" $startpos($3) $endpos($3); *)
+  (*     make_expression Expression.Error $startpos $endpos } *)
+  | c = constant 
+	  { make_expression (Expression.Constant c) $startpos $endpos }
+  | b = block { b }
   | v = IDENT { make_expression (Expression.Ident (mkrhs (Fqident.parse v) $startpos(v) $endpos(v))) $startpos $endpos }
+
 
 block:
   (* a block is either expr, { seq_expr }, or BEGIN seq_expr END *)
@@ -298,11 +303,6 @@ block:
   (*   { unclosed "begin" $startpos($1) $endpos($1) "end" $startpos($3) $endpos($3);  *)
   (*     make_expression Pexp_err $startpos $endpos } *)
   (* | BEGIN e = error { e } *)
-
-expr_comma_list:
-  | l = expr_comma_list COMMA e = expr { e :: l }
-  | e1 = expr COMMA e2 = expr          { [e2; e1] }
-
 
 (* Patterns *)
 
@@ -325,24 +325,19 @@ core_type:
       { make_type (Type.Arrow (c1, c2)) $startpos $endpos }
 
 simple_core_type:
-  | i = IDENT  { make_type (Type.Variable i) $startpos $endpos }
+  | QUOTE i = IDENT  { make_type (Type.Variable i) $startpos $endpos }
   | UNDERSCORE { make_type  Type.Any    $startpos $endpos }
   | t = TYPE   { make_type (Type.Literal t) $startpos $endpos }
-  | LPAREN ct = core_type RPAREN %prec below_SHARP { ct }
 
 simple_core_type_or_tuple:
   | s = simple_core_type   { s }
-  | s = simple_core_type ASTERISK l = core_type_list
-      { make_type (Type.Tuple (s :: List.rev l)) $startpos $endpos }
+  | LPAREN ct = simple_core_type COMMA ctl = separated_nonempty_list(COMMA, simple_core_type) RPAREN 
+     { make_type (Type.Tuple (ct::ctl)) $startpos $endpos }
 
-core_type_list:
-  | s = simple_core_type { [s] }
-  | l = core_type_list ASTERISK s = simple_core_type  { s :: l }
-
-
+      
 anon_func: 
-  | FUNCTION f = func_proto_body { f }
-  | pl = delimited_by(PIPE, arg_list) e = func_proto_tail
+  | FUNCTION f = anon_func_proto_tail { f }
+  | pl = delimited_by(PIPE, arg_list) e = anon_func_proto_tail
       { make_expression (Expression.Function (pl, e)) $startpos $endpos }
   (* | error func_proto_body  *)
   (*     { make_expression Pexp_err $startpos($1) $endpos($1) } *)
@@ -350,12 +345,15 @@ anon_func:
 func_proto_body: 
   | p = delimited(LPAREN, arg_list, RPAREN) e = func_proto_tail
     { make_expression (Expression.Function (p, e)) $startpos $endpos }
-  | e = func_proto_tail
-    { make_expression (Expression.Function ( [], e)) $startpos $endpos }
+  | e = func_proto_tail { make_expression (Expression.Function ([],e)) $startpos $endpos }
  
-func_proto_tail: 
-  | sep+ e = seq_expr END { e }
+anon_func_proto_tail:
   | RIGHT_STAB e = expr { e }
+  | RIGHT_STAB ct = core_type LCURLY body = seq_expr RCURLY
+     { make_expression (Expression.Constraint (body, ct)) $startpos(body) $endpos(body) }
+
+func_proto_tail:
+  | afpt = anon_func_proto_tail { afpt }
   | RIGHT_STAB ct = core_type sep+ body = seq_expr END
       { make_expression (Expression.Constraint (body, ct)) $startpos(body) $endpos(body) }
   (* | sep seq_expr error  *) (* To be used for missing END *)
@@ -389,6 +387,9 @@ constant:
   | f = FLOAT       { Const_float f }
   | i = INT32       { Const_int32 i }
   | i = INT64       { Const_int64 i }
+  | LPAREN RPAREN   { Const_unit }
+  | TRUE            { Const_true }
+  | FALSE           { Const_false }
 
 signed_constant:
   | c = constant        { c }

@@ -9,6 +9,9 @@ type constant =
   | Const_float  of float
   | Const_int32  of int32
   | Const_int64  of int64
+  | Const_true
+  | Const_false
+  | Const_unit
 
 type 'a location = 'a Location.loc = {
   txt : 'a;

@@ -41,6 +41,9 @@ let fmt_constant f = function
   | Const_float (i) -> fprintf f "Const_float %f" i;
   | Const_int32 (i) -> fprintf f "Const_int32 %ld" i;
   | Const_int64 (i) -> fprintf f "Const_int64 %Ld" i;
+  | Const_false -> fprintf f "Const_false false";
+  | Const_true -> fprintf f "Const_true true"
+  | Const_unit -> fprintf f "Const_unit unit"
 ;;
 
 (* let fmt_private_flag f x = *)
