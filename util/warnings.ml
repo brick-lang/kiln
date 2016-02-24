@@ -162,8 +162,8 @@ let letter = function
   | _ -> assert false
 ;;
 
-let active = Array.create (last_warning_number + 1) true;;
-let error = Array.create (last_warning_number + 1) false;;
+let active = Array.make (last_warning_number + 1) true;;
+let error = Array.make (last_warning_number + 1) false;;
 
 type state = bool array * bool array
 let backup () = (Array.copy active, Array.copy error)

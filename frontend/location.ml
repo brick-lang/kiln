@@ -100,16 +100,17 @@ let highlight_textutils (header: unit -> unit ) lb loc =
   (* let ustring = BatText.implode @@ Array.to_list segment in *)
   (* BatText.write_text BatIO.stdout ustring; *)
   let utf8_handler pos uchar =
-    let print_uchar = BatText.write_char BatIO.stdout in 
+    let print_uchar = BatText.write_char BatIO.stdout in begin
     if !line = !line_start && !line = !line_end then
       (* loc is on one line: print whole line *)
       print_uchar uchar
     else if !line = !line_start then
       (* first line of multiline loc:
-         print a dot for each char before loc_start *)
-      if pos < loc.loc_start.buffer_offset
-      then print_char '.'
-      else print_uchar uchar
+       * print a dot for each char before loc_start *)
+      (* if pos < loc.loc_start.buffer_offset then *)
+      (*   print_char '.' *)
+      (* else *)
+      print_uchar uchar
     else if !line = !line_end then
       (* last line of multiline loc: print a dot for each char
          after loc_end, even whitespaces *)
@@ -119,6 +120,7 @@ let highlight_textutils (header: unit -> unit ) lb loc =
     else if !line > !line_start && !line < !line_end then
       (* intermediate line of multiline loc: print whole line *)
       print_uchar uchar
+    end;
   in
   let underliner start stop =
     if start = stop then
@@ -145,7 +147,7 @@ let highlight_textutils (header: unit -> unit ) lb loc =
         done;
         underliner start_offset end_offset;
       end;
-      if !line >= !line_start && !line <= !line_end then begin
+      if !line >= !line_start && !line < !line_end then begin
         print_newline ();
         if pos < end_offset then print_string "  "
       end;
@@ -158,7 +160,8 @@ let highlight_textutils (header: unit -> unit ) lb loc =
   Array.iteri segment ~f:(fun pos uchar ->
       if BatUChar.is_ascii uchar
       then ascii_handler pos uchar
-      else utf8_handler pos uchar)
+      else utf8_handler pos uchar);
+  print_newline ()
 
 (* Highlight the location using one of the supported modes. *)
 
@@ -241,13 +244,20 @@ type error = {
 
 let rec print_error lb ?(sub_error=false) { header; message; location; sub_errors} =
   let header_helper () : unit = 
-    Console.Ansi.printf [`Red] " Error: ";
+    Console.Ansi.printf [`Red; `Bright] " Error: ";
     Console.Ansi.printf [`Bright] "%s" header;
     ()
   in
   if not sub_error then
     highlight_textutils header_helper lb location;
-  (match message with Some m -> print_endline m | None -> ());
+  (match message with
+   | Some m -> 
+       if not sub_error then
+         Console.Ansi.printf [`Bright] "Reason: "
+       else
+         Console.Ansi.printf [`Bright] "Suggestion: ";
+       print_endline m
+   | None -> ());
   if not @@ List.is_empty sub_errors then begin
     ignore @@ List.map ~f:(print_error lb ~sub_error:true) sub_errors;
     print_newline ()

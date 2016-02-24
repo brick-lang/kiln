@@ -205,8 +205,8 @@ let string_literal = [%re? '\"', Star any, '\"']
 
 let char_literal = [%re? '\'', any, '\'']
 
-(* ['a'-'z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* *)
-let ident = [%re? 'a'..'z', Star('a'..'z'|'A'..'Z'|'0'..'9'|'_')]
+(* ['a'-'z'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '\'']* *)
+let ident = [%re? 'a'..'z', Star('a'..'z'|'A'..'Z'|'0'..'9'|'_'|'\'')]
 
 (* ['A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* *)
 let type_re = [%re? 'A'..'Z', Star('a'..'z'|'A'..'Z'|'0'..'9'|'_')]

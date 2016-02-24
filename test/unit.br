@@ -1,1 +1,7 @@
-fn main() -> ()
+fn foo -> ()
+  4
+end
+
+fn bar -> a
+  4
+end

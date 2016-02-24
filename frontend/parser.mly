@@ -37,8 +37,8 @@ let unclosed opening_name opening_sp opening_ep closing_name closing_sp closing_
   Core.Std.Queue.enqueue Error.errors (Error.Unmatched(symbol_rloc opening_sp opening_ep, opening_name,
 				                              symbol_rloc closing_sp closing_ep, closing_name))
 
-let unexpected name opening closing  =
-  Core.Std.Queue.enqueue Error.errors (Error.Not_expecting(symbol_rloc opening closing, name))
+let unexpected ?(suggestion="") name opening closing  =
+  Core.Std.Queue.enqueue Error.errors (Error.Not_expecting(symbol_rloc opening closing, name, suggestion))
 
 let expected ?(suggestion="") name opening closing =
   Core.Std.Queue.enqueue Error.errors (Error.Expecting(symbol_rloc opening closing, name, suggestion))
@@ -157,7 +157,8 @@ let expected ?(suggestion="") name opening closing =
 (* %left     BAR                           (\* pattern (p|p|p) *\) *)
 %nonassoc below_COMMA
 (* %left     COMMA                         (\* expr/expr_comma_list (e,e,e) *\) *)
-%right    RIGHT_STAB                    (* core_type2 (t -> t -> t) *)
+%right RIGHT_STAB                          (* core_type2 (t -> t -> t) *)
+(* %left SEMI NEWLINE *)
 (* %right    OR                            (\* expr (e || e || e) *\) *)
 (* %right    AMPERSAND AND                 (\* expr (e && e && e) *\) *)
 (* %nonassoc below_EQUAL *)
@@ -212,8 +213,7 @@ parse_expression:
 parse_pattern:
   | p = pattern EOF { p }
 
-%inline many_delim(X,delim):
-  | x = X delim* { x }
+%inline many_delim(X,delim): x = X delim* { x }
 
 structure: 
   | se = many_delim(structure_item, NEWLINE)+ { se }
@@ -223,9 +223,8 @@ structure_item:
   | FUNCTION i = simple_pattern f = func_proto_body
     { make_structure (StructureItem.Value (ValueBinding.make ~location:(symbol_rloc $startpos $endpos) i f)) $startpos $endpos }
   (*| f = floating_attribute { make_structure(Pstr_attribute f) }*)
-  | error { 
-	expected "a top-level declaration" $startpos $endpos;
-            make_structure StructureItem.Error $startpos $endpos }
+  (* | error { expected "a top-level declaration" $startpos $endpos; *)
+  (*           make_structure StructureItem.Error $startpos $endpos } *)
 
 sep:
   | NEWLINE { }
@@ -269,7 +268,8 @@ expr:
   | s = simple_expr %prec below_SHARP { s }
   | LPAREN t = expr COMMA tl = separated_nonempty_list(COMMA, expr) RPAREN %prec below_COMMA 
       { make_expression (Expression.Tuple (t::tl)) $startpos $endpos }
-  (*| c = call        { c }*)
+  | c = call        { c }
+  | a = apply       { a }
   | l = let_main    { l }
   (* TODO: match *)
   (* tuples *)
@@ -278,7 +278,15 @@ expr:
   (*   { expected "an expression" $startpos $endpos; *)
   (*     make_expression Expression.Error $startpos $endpos } *)
 
+call:
+  | e = expr arg_list = delimited(LPAREN,separated_list(COMMA,expr),RPAREN)
+      { make_expression (Expression.Call (e, arg_list)) $startpos $endpos }
+		  
+apply: 
+  | e = expr arg_list = delimited(LBRACKET,separated_list(COMMA,expr),RBRACKET)
+      { make_expression (Expression.Apply (e, arg_list)) $startpos $endpos }
 
+      
 simple_expr:
   | LPAREN e = expr RPAREN { e }
   (* | LPAREN e = expr error  *)
@@ -304,7 +312,7 @@ block:
   (*     make_expression Pexp_err $startpos $endpos } *)
   (* | BEGIN e = error { e } *)
 
-(* Patterns *)
+(** Patterns *)
 
 pattern:
   | s = simple_pattern { s }
@@ -314,6 +322,7 @@ pattern:
 simple_pattern: 
   | v = IDENT { make_pattern (Pattern.Variable (mkrhs v $startpos(v) $endpos(v))) $startpos $endpos }
   | UNDERSCORE { make_pattern Pattern.Any $startpos $endpos }
+  (* | c = constant *)
   | error { expected "a pattern" $startpos $endpos ~suggestion:"use an '_' or '()'";
   	    make_pattern Pattern.Error $startpos $endpos }
 
@@ -336,26 +345,48 @@ simple_core_type_or_tuple:
 
       
 anon_func: 
-  | FUNCTION f = anon_func_proto_tail { f }
-  | pl = delimited_by(PIPE, arg_list) e = anon_func_proto_tail
+  (* fn [tail] *)
+  | FUNCTION f = func_proto_body { f }
+  (* |x,y,...z| [tail] *)
+  | pl = delimited_by(PIPE, separated_nonempty_list(COMMA,pattern)) e = func_proto_tail
       { make_expression (Expression.Function (pl, e)) $startpos $endpos }
   (* | error func_proto_body  *)
   (*     { make_expression Pexp_err $startpos($1) $endpos($1) } *)
 
 func_proto_body: 
+  (* (x...) [tail] *)
   | p = delimited(LPAREN, arg_list, RPAREN) e = func_proto_tail
     { make_expression (Expression.Function (p, e)) $startpos $endpos }
+  (* [tail] *)
   | e = func_proto_tail { make_expression (Expression.Function ([],e)) $startpos $endpos }
  
-anon_func_proto_tail:
-  | RIGHT_STAB e = expr { e }
-  | RIGHT_STAB ct = core_type LCURLY body = seq_expr RCURLY
-     { make_expression (Expression.Constraint (body, ct)) $startpos(body) $endpos(body) }
-
 func_proto_tail:
-  | afpt = anon_func_proto_tail { afpt }
+  (* | rs = RIGHT_STAB e = expr sep+ seq_expr en = END { *)
+  (*     match e.Expression.variant with  *)
+  (*     | Expression.Constant (Const_unit) -> *)
+  (* 	 unexpected "function body. Function already returns ()" ~suggestion:"Unit instead of ()" $startpos(rs) $endpos(en); *)
+  (* 	 make_expression (Expression.Error) $startpos(e) $endpos(e) *)
+  (*     | Expression.Ident f ->  *)
+  (* 	 let last : string = Fqident.last (f.Location.txt) in *)
+  (* 	 unexpected (Printf.sprintf "function body. Function already returns the value of %s" last) *)
+  (* 		    ~suggestion:(Printf.sprintf "a type variable, such as '%s" last) $startpos(rs) $endpos(en); *)
+  (* 	 make_expression (Expression.Error) $startpos(e) $endpos(e) *)
+  (*   } *)
+  
+  (* -> [body] *)
+  | RIGHT_STAB body = expr { body }
+  
+  (* -> Unit { [body] } *)
+  | RIGHT_STAB ct = core_type sep* LCURLY sep* body = seq_expr RCURLY
+    { make_expression (Expression.Constraint (body, ct)) $startpos(body) $endpos(body) }
+
+  (* -> [Type]; [body] end *)
   | RIGHT_STAB ct = core_type sep+ body = seq_expr END
-      { make_expression (Expression.Constraint (body, ct)) $startpos(body) $endpos(body) }
+    { make_expression (Expression.Constraint (body, ct)) $startpos(body) $endpos(body) }
+ 
+  (* ; [body] end *)
+  | sep+ body = seq_expr END { body }
+		
   (* | sep seq_expr error  *) (* To be used for missing END *)
 
 %inline arg_list: sl = separated_list(COMMA, pattern) { sl }

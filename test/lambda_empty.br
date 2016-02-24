@@ -1,5 +1,11 @@
-fn main
+fn foo
   |_| -> Int
-    2
+    3
+  end
+end
+
+fn bar
+  fn (_) -> Int
+    3
   end
 end

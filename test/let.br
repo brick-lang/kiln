@@ -1,7 +1,8 @@
-fn main
-  let 
-    x = 0
-  in 
-    2
+fn main(3) -> (Int,Int)
+  let x = 0
+      y = 4
+  in
+    (x,y)
   end
 end
+

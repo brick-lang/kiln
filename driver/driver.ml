@@ -51,6 +51,7 @@ let get_next_token (lexer : Sedlexing.lexbuf -> Parser.token) =
 
 module MI = Parser.MenhirInterpreter
 
+            
 let parse lexbuf lexer parser =
   let rec parse_loop lexbuf read_token checkpoint =
     match checkpoint with
@@ -66,6 +67,7 @@ let parse lexbuf lexer parser =
        let checkpoint = MI.resume checkpoint in
        parse_loop lexbuf read_token checkpoint
     | MI.HandlingError env ->
+        (* let stack = MI.stack env in *)
        (* The parser has suspended itself because of a syntax error. Stop. *)
         parse_loop lexbuf read_token (MI.resume checkpoint)
     | MI.Accepted v -> Some v
