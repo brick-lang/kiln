@@ -1,5 +1,5 @@
 fn main
-    fn(x: Double -> Double, y: Double) -> Int
-        x(y)
-    end
+  fn(x: Double -> Double, y: Double) -> Int
+    x(y)
+  end
 end

@@ -162,13 +162,10 @@ let char_for_hexadecimal_code lexbuf i =
 
 (* To convert integer literals, allowing max_int + 1 (OCaml PR#4210) *)
 
-let cvt_int_literal s = - int_of_string ("-" ^ s)
-let cvt_int32_literal s =
-  Int32.neg @@ Int32.of_string @@ "-" ^ String.sub s 0 (String.length s - 1)
-let cvt_int64_literal s =
-  Int64.neg @@ Int64.of_string @@ "-" ^ String.sub s 0 (String.length s - 1)
-let cvt_nativeint_literal s =
-  Nativeint.neg @@ Nativeint.of_string @@ "-" ^ String.sub s 0 (String.length s - 1)
+let cvt_int_literal = int_of_string
+let cvt_int32_literal = Int32.of_string
+let cvt_int64_literal = Int64.of_string
+let cvt_nativeint_literal = Nativeint.of_string
 
 (* let preprocessor = ref None *)
 
@@ -274,6 +271,7 @@ let rec main lexbuf =
   (* | float_literal -> let f = Sedlexing.Utf8.lexeme lexbuf in FLOAT f *)
 
   | int_literal, "i32" -> let i = Sedlexing.Utf8.lexeme lexbuf in begin
+      let i = String.sub i 0 ((String.length i) - 3) in
       try INT32 (cvt_int32_literal i)
       with Failure _ ->
         handle_error lexbuf (Literal_overflow ("int32", Location.curr lexbuf));
@@ -282,6 +280,7 @@ let rec main lexbuf =
 
 
   | int_literal, "i64" -> let i = Sedlexing.Utf8.lexeme lexbuf in begin
+      let i = String.sub i 0 ((String.length i) - 3) in
       try INT64 (cvt_int64_literal i)
       with Failure _ ->
         handle_error lexbuf (Literal_overflow("int64", Location.curr lexbuf));

@@ -1,7 +1,7 @@
-fn foo -> ()
-  4
+fn foo -> Unit
+  -4i32
 end
 
-fn bar -> a
-  4
+fn bar -> 'a
+  ()
 end

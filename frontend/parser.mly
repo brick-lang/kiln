@@ -198,10 +198,6 @@ let expected ?(suggestion="") name opening closing =
 %public %inline delimited_by(delim,X):
   | d = delimited(delim,X,delim) { d }
 
-%public %inline preceded_by(delim,X):
-  | delim x = X  { x }
-
-
 (* Entry point rules *)
 
 file_input:
@@ -216,14 +212,11 @@ file_input:
 (* parse_pattern: *)
 (*   | p = pattern EOF { p } *)
 
-%inline many_delim(X,delim): x = X delim+ { x }
-
-
 (* Toplevel structure *)
 structure_toplevel:
-  (* ([toplevel structure item] [separator])* *)
-  | se = many_delim(structure_item_toplevel, sep)* { se }
-
+  | (* ε *) { [] }
+  | se = structure_item_toplevel st = preceded(sep+, structure_toplevel)? 
+      { match st with Some st -> se::st | None -> [se] }
 
 (* Toplevel structure items *)
 structure_item_toplevel:
@@ -386,7 +379,7 @@ anon_func:
   (* fn [tail] *)
   | FUNCTION f = func_proto_body { f }
   (* |x,y,...z| [tail] *)
-  | pl = delimited_by(PIPE, separated_nonempty_list(COMMA,pattern_opt_default)) e = func_proto_tail
+  | pl = delimited_by(PIPE, separated_nonempty_list(COMMA, pattern_opt_default)) e = func_proto_tail
       { make_expression (Expression.Function (pl, e)) $startpos $endpos }
   (* | error func_proto_body  *)
   (*     { make_expression Pexp_err $startpos($1) $endpos($1) } *)
