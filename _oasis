@@ -59,7 +59,8 @@ Library codegen
 Executable kiln
   Path:           driver
   BuildDepends:   frontend, codegen,
-                  util, yojson, ollvm
+                  util, yojson, ollvm,
+                  ppx_import, ppx_deriving.std
   MainIs:         kiln.ml
   CompiledObject: native
 

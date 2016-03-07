@@ -146,6 +146,15 @@ and pattern i ppf (x:Pattern.t) =
   | Pattern.Error ->
       line i ppf "Pattern.Error\n";
 
+and pattern_default i ppf (x:PatternDefault.t) =
+  let open PatternDefault in
+  pattern i ppf x.pattern;
+  match x.variant with
+  | None -> ()
+  | Default d -> 
+      line i ppf "default\n";
+      expression (i+1) ppf d
+      
 and expression i ppf (x:Expression.t) =
   line i ppf "expression %a\n" fmt_location x.Expression.location;
   let i = i+1 in
@@ -154,15 +163,15 @@ and expression i ppf (x:Expression.t) =
 
   | Expression.Constant (c) -> line i ppf "Expression.Constant %a\n" fmt_constant c;
 
-  | Expression.Let (l, e) ->
+  | Expression.Let (l,e) ->
       line i ppf "Expression.Let\n";
-      list i value_binding ppf l;
-      expression i ppf e;
+      list i let_ ppf l;
+      expression i ppf e
 
   | Expression.Function (l, e(* , cto *)) ->
       line i ppf "Expression.Function\n" ;
       (*       option i core_type ppf cto; *)
-      list i pattern ppf l;
+      list i pattern_default ppf l;
       expression i ppf e;
 
   | Expression.Function_fragment (p,e) ->
@@ -187,7 +196,7 @@ and expression i ppf (x:Expression.t) =
       expression i ppf f;
 
 
-  | Expression.Synch_call (e, f) ->
+  | Expression.Sync_call (e, f) ->
       line i ppf "Expression.Synch_call\n";
       expression i ppf e;
       expression i ppf f;
@@ -260,12 +269,69 @@ and structure_item i ppf (x:StructureItem.t) =
       line i ppf "StructureItem.Value\n";
       value_binding i ppf l;
 
+  | StructureItem.Using (t, v) -> 
+      line i ppf "StructureItem.Using\n";
+      core_type i ppf t;
+      string i ppf v;
+
+  | StructureItem.Import t ->
+      line i ppf "StructureItem.Import\n";
+      core_type i ppf t
+
+  | StructureItem.Module s ->
+      line i ppf "StructureItem.Module\n";
+      list i structure_item ppf s
+      
   | StructureItem.Error ->
       line i ppf "StructureItem.Error\n"
 
+
 and value_binding i ppf (x:ValueBinding.t) =
-  line i ppf "<def>\n";
+  line i ppf "<val>\n";
   pattern (i+1) ppf x.ValueBinding.pattern;
   expression (i+1) ppf x.ValueBinding.expression
 
+and future_binding i ppf (x:FutureBinding.t) =
+  line i ppf "<future>\n";
+  pattern (i+1) ppf x.FutureBinding.pattern;
+  expression (i+1) ppf x.FutureBinding.expression;
+
+and bound_call i ppf (x:BoundCall.t) =
+  line i ppf "<call>\n";
+  let i = i+1 in
+  pattern i ppf x.BoundCall.pattern;
+  match x.BoundCall.variant with
+  | BoundCall.Forked e ->
+      line i ppf "BoundCall.Forked\n";
+      expression i ppf e
+
+  | BoundCall.Synced e ->
+      line i ppf "BoundCall.Synced\n";
+      expression i ppf e
+      
+  | BoundCall.Pipelined e ->
+      line i ppf "BoundCall.Pipelined\n";
+      expression i ppf e
+      
+      
+and let_ i ppf (x:LetStatement.t) =
+  line i ppf "let_struct %a\n" fmt_location x.LetStatement.location;
+  let i = i+1 in
+  match x.LetStatement.variant with
+  | LetStatement.Binding b ->
+      line i ppf "LetStatement.Binding\n";
+      value_binding i ppf b
+
+  | LetStatement.Call c ->
+      line i ppf "LetStatement.Call\n";
+      bound_call i ppf c
+
+  | LetStatement.Future f ->
+      line i ppf "LetStatement.Future\n";
+      future_binding i ppf f
+
+  | LetStatement.Import t ->
+      line i ppf "LetStatement.Import";
+      core_type i ppf t
+      
 let implementation ppf x = list 0 structure_item ppf x;;

@@ -40,7 +40,7 @@ let () =
 	   flag ["ocaml"; "compile"; "ppx_monadic"] &
 	     S [A "-ppx"; A (String.trim @@ syscall "which ppx_monadic")];
 	   
-           flag ["menhir"; "ocaml"] & S [A "--infer"; A "--table"]; (* A "--trace"; A "--explain"]; *)
+           flag ["menhir"; "ocaml"] & S [A "--infer"; A "--table"; A "--inspection";] (* A "--trace"; A "--explain"]; *)
 
        | _ -> ())
 

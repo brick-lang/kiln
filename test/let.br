@@ -1,8 +1,16 @@
-fn main(3) -> (Int,Int)
+fn main -> (Int,Int)
   let x = 0
       y = 4
+      y -> add1(y)
   in
-    (x,y)
+    ((x,y), (y,x))
   end
 end
 
+fn foo
+  let import Mortar.Graphs.Digraph in x end
+end
+
+fn bar
+  let x : 'a -> 'b -> 'c = 2 in x end
+end

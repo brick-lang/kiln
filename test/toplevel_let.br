@@ -1,1 +1,7 @@
 x = 5
+
+foo = |x| -> x
+
+bar = |x,y,z|
+  (x,y,z)
+end

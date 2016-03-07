@@ -43,6 +43,14 @@ module Pattern = struct
   let constraint_ ?location a b = make ?location (Constraint (a, b))
 end
 
+module PatternDefault = struct
+  include ParseTreeNodes.PatternDefault
+  let make ?(location = !default_location) pattern variant = { pattern; location; variant }
+
+  let default ?location a b  = make ?location a (Default b)
+  let none    ?location a    = make ?location a None
+end
+
 module Expression = struct
   include ParseTreeNodes.Expression
   let make ?(location = !default_location) variant = { location; variant; }
@@ -76,9 +84,10 @@ end
 module StructureItem = struct
   include ParseTreeNodes.StructureItem
   let make ?(location = !default_location) variant = { location; variant; }
-
-  let eval      ?location a = make ?location (Eval a)
-  let value     ?location a = make ?location (Value a)
+  let eval      ?location a   = make ?location (Eval a)
+  let value     ?location a   = make ?location (Value a)
+  let using     ?location a b = make ?location (Using (a, b))
+  let import    ?location a   = make ?location (Import a)
 end
 
 module ValueBinding = struct
@@ -86,3 +95,26 @@ module ValueBinding = struct
   let make ?(location = !default_location) ?(attrs = []) pattern expression =
     { pattern; expression; location }
 end
+
+module FutureBinding = struct
+  include ParseTreeNodes.FutureBinding
+  let make ?(location = !default_location) ?(attrs = []) pattern expression =
+    { pattern; expression; location }
+end
+
+module BoundCall = struct
+  include ParseTreeNodes.BoundCall
+  let make ?(location = !default_location) pattern variant = { pattern; variant; location }
+  let pipelined ?location a b = make ?location a (Pipelined b)
+  let forked  ?location a b = make ?location a (Forked b)
+  let synced  ?location a b = make ?location a (Synced b)
+end
+
+module LetStatement = struct
+  include ParseTreeNodes.LetStatement
+  let make ?(location = !default_location) variant = { variant; location }
+  let binding ?location a = make ?location (Binding a)
+  let call    ?location a = make ?location (Call a)
+  let future  ?location a = make ?location (Future a)
+  let import  ?location a = make ?location (Import a)
+end;;

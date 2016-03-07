@@ -31,13 +31,11 @@ module rec CoreType : sig
     | Literal of string
 
     (* A pipelined applicative type.
-     * T1 -> T2
-    *)
+     * T1 -> T2 *)
     | Arrow of t * t
 
     (* A tuple type is composed of 2 or more inner types
-     * (T1, ..., Tn) | where n >= 2
-    *)
+     * (T1, ..., Tn) | where n >= 2 *)
     | Tuple of t list
 
     (* This represents a parameterized type
@@ -101,6 +99,17 @@ and Pattern : sig
 
 end = Pattern
 
+and PatternDefault : sig
+  type t = {
+    pattern  : Pattern.t;
+    location : Location.t;
+    variant  : sort;
+  }
+  and sort =
+    | Default of Expression.t
+    | None
+end = PatternDefault
+
 
 (** Value expressions *)
 and Expression : sig
@@ -122,7 +131,7 @@ and Expression : sig
     (* let P1 = E1
      *     Pn = En
      * in E end    *)
-    | Let of ValueBinding.t list * t
+    | Let of LetStatement.t list * t
 
     (**
      * Unlike Haskell and the MLs, n-ary functions are not (at the top)
@@ -136,7 +145,7 @@ and Expression : sig
 
     (* TODO: we need to somehow check for pattern variables
      * so that calling like foo{x:3} always works *)
-    | Function of Pattern.t list * t
+    | Function of PatternDefault.t list * t
 
     (**
      * Function fragments are what functions are *actually*
@@ -157,7 +166,7 @@ and Expression : sig
     | Parallel_call of t * t
 
     (* E0 ~> E1 *)
-    | Synch_call of t * t
+    | Sync_call of t * t
 
     (* E0 -> E1 *)
     | Pipeline_call of t * t
@@ -224,9 +233,20 @@ and StructureItem : sig
     (* E *)
     | Eval  of Expression.t
 
-    (* let P1 = E1 *)
+    (* P1 = E1 *)
     | Value of ValueBinding.t
 
+    (* using Mortar[1.5.2] *)
+    | Using of CoreType.t * string
+
+    (* import Mortar.Maps.TreeMap *)
+    | Import of CoreType.t
+
+    (* module MyModule; [structure]; end *)
+    (* Technically Modules could contain "using" statements, but our 
+     * parser never builds this. *)
+    | Module of Structure.t
+               
     | Error
 
 end = StructureItem
@@ -244,38 +264,50 @@ and ValueBinding : sig
   }
 end = ValueBinding
 
-(* A let value binding is a specialization that can
- * include a bound call
- * y = 4
- *   -> foo(2)
-*)
-and LetValueBinding : sig
+and FutureBinding : sig
   type t = {
-    pattern    : Pattern.t;
-    expression : Expression.t;
-    location   : Location.t;
-
-    (* Only non-top-level let expressions can have bound calls *)
-    call       : BoundCall.t;
+    pattern : Pattern.t;
+    location : Location.t;
+    expression : Expression.t
   }
-end = LetValueBinding
+end = FutureBinding
 
-and  BoundCall : sig
+and BoundCall : sig
   type t = {
+    pattern  : Pattern.t;
     location : Location.t;
     variant  : sort;
   }
 
   and sort =
-    (* -> foo(23) *)
+    (* x -> foo(23) *)
     | Pipelined of Expression.t
 
-    (* => foo(23) *)
+    (* x => foo(23) *)
     | Forked    of Expression.t
 
-    (* ~> foo(23) *)
+    (* x ~> foo(23) *)
     | Synced    of Expression.t
 
-    | None
-
 end = BoundCall
+
+and LetStatement : sig
+  type t = {
+    variant  : sort;
+    location : Location.t;
+  }
+
+  and sort =
+
+    (* x = 0 *)
+    | Binding of ValueBinding.t
+
+    (* x -> y() *)
+    | Call of BoundCall.t
+
+    (* x <- y() *)
+    | Future of FutureBinding.t
+
+    (* import Lattice.Digraph *)
+    | Import of CoreType.t
+end = LetStatement

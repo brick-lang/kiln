@@ -72,97 +72,98 @@ let highlight_textutils (header: unit -> unit ) lb loc =
   (* Char 0 is at offset -lb.offset in lb.lex_buffer. *)
   let pos0 = -lb.offset in
   (* Do nothing if the buffer does not contain the whole phrase. *)
-  if pos0 < 0 then begin
-    print_endline @@ string_of_int pos0;
-    print_endline @@ string_of_int lb.len;
-    raise Exit
-  end;
-  let end_pos = lb.len - pos0 - 1 in
-  (* Determine line numbers for the start and end points *)
-  let line_start = ref 0 and line_end = ref 0 in
-  for pos = 0 to end_pos do
-    if Array.get lb.buf (pos + pos0) = Char.to_int '\n' then begin
-      if loc.loc_start.buffer_offset > pos then incr line_start;
-      if loc.loc_end.buffer_offset   > pos then incr line_end;
-    end
-  done;
-  (* Print character location (useful for Emacs) *)
-  Console.Ansi.printf [`Bright] "%s:%d:%d" lb.curr_pos.file_name (!line_start + 1)
-    loc.loc_start.buffer_offset;
-  header ();
-  print_newline ();
-  print_string "  ";
-  flush stdout;
-  let line = ref 0 in
-  (* let pos = ref 0 in *)
-  let pos_at_bol = ref 0 in
-  let segment = Array.map ~f:BatUChar.of_int @@ Array.slice lb.buf pos0 end_pos in
-  (* let ustring = BatText.implode @@ Array.to_list segment in *)
-  (* BatText.write_text BatIO.stdout ustring; *)
-  let utf8_handler pos uchar =
-    let print_uchar = BatText.write_char BatIO.stdout in begin
-    if !line = !line_start && !line = !line_end then
-      (* loc is on one line: print whole line *)
-      print_uchar uchar
-    else if !line = !line_start then
-      (* first line of multiline loc:
-       * print a dot for each char before loc_start *)
-      (* if pos < loc.loc_start.buffer_offset then *)
-      (*   print_char '.' *)
-      (* else *)
-      print_uchar uchar
-    else if !line = !line_end then
-      (* last line of multiline loc: print a dot for each char
-         after loc_end, even whitespaces *)
-      if pos < loc.loc_end.buffer_offset
-      then print_uchar uchar
-      else print_char '.'
-    else if !line > !line_start && !line < !line_end then
-      (* intermediate line of multiline loc: print whole line *)
-      print_uchar uchar
-    end;
-  in
-  let underliner start stop =
-    if start = stop then
-      Console.Ansi.printf [`Green] "^"
-    else
-      for _i = start to (stop - 1) do
-        if _i = start then
-          Console.Ansi.printf [`Green] "^"
-        else
-          Console.Ansi.printf [`Green] "~"
-      done
-  in
-  let ascii_handler pos uchar =
-    let char = BatUChar.char_of uchar in
-    let start_offset = loc.loc_start.buffer_offset in
-    let end_offset = loc.loc_end.buffer_offset in
-    if char = '\n' then begin
-      if !line = !line_start && !line = !line_end then begin
-        (* loc is on one line: underline location *)
-        print_newline ();
-        print_string "  ";
-        for _i = !pos_at_bol to start_offset - 1 do
-          print_char ' ';
-        done;
-        underliner start_offset end_offset;
+  (* if pos0 < 0 then begin *)
+  (*   print_endline @@ string_of_int pos0; *)
+  (*   print_endline @@ string_of_int lb.len; *)
+  (*   raise Exit *)
+  (* end; *)
+  if pos0 >= 0 then
+    let end_pos = lb.len - pos0 - 1 in
+    (* Determine line numbers for the start and end points *)
+    let line_start = ref 0 and line_end = ref 0 in
+    for pos = 0 to end_pos do
+      if Array.get lb.buf (pos + pos0) = Char.to_int '\n' then begin
+        if loc.loc_start.buffer_offset > pos then incr line_start;
+        if loc.loc_end.buffer_offset   > pos then incr line_end;
+      end
+    done;
+    (* Print character location (useful for Emacs) *)
+    Console.Ansi.printf [`Bright] "%s:%d:%d" lb.curr_pos.file_name (!line_start + 1)
+      loc.loc_start.buffer_offset;
+    header ();
+    print_newline ();
+    print_string "  ";
+    flush stdout;
+    let line = ref 0 in
+    (* let pos = ref 0 in *)
+    let pos_at_bol = ref 0 in
+    let segment = Array.map ~f:BatUChar.of_int @@ Array.slice lb.buf pos0 end_pos in
+    (* let ustring = BatText.implode @@ Array.to_list segment in *)
+    (* BatText.write_text BatIO.stdout ustring; *)
+    let utf8_handler pos uchar =
+      let print_uchar = BatText.write_char BatIO.stdout in begin
+        if !line = !line_start && !line = !line_end then
+          (* loc is on one line: print whole line *)
+          print_uchar uchar
+        else if !line = !line_start then
+          (* first line of multiline loc:
+           * print a dot for each char before loc_start *)
+          (* if pos < loc.loc_start.buffer_offset then *)
+          (*   print_char '.' *)
+          (* else *)
+          print_uchar uchar
+        else if !line = !line_end then
+          (* last line of multiline loc: print a dot for each char
+             after loc_end, even whitespaces *)
+          if pos < loc.loc_end.buffer_offset
+          then print_uchar uchar
+          else print_char '.'
+        else if !line > !line_start && !line < !line_end then
+          (* intermediate line of multiline loc: print whole line *)
+          print_uchar uchar
       end;
-      if !line >= !line_start && !line < !line_end then begin
-        print_newline ();
-        if pos < end_offset then print_string "  "
-      end;
-      incr line;
-      pos_at_bol := pos + 1;
-    end
-    else if char = '\r' then ()
-    else utf8_handler pos uchar
-  in
-  Array.iteri segment ~f:(fun pos uchar ->
-      if BatUChar.is_ascii uchar
-      then ascii_handler pos uchar
-      else utf8_handler pos uchar);
-  print_newline ()
-
+    in
+    let underliner start stop =
+      if start = stop then
+        Console.Ansi.printf [`Green] "^"
+      else
+        for _i = start to (stop - 1) do
+          if _i = start then
+            Console.Ansi.printf [`Green] "^"
+          else
+            Console.Ansi.printf [`Green] "~"
+        done
+    in
+    let ascii_handler pos uchar =
+      let char = BatUChar.char_of uchar in
+      let start_offset = loc.loc_start.buffer_offset in
+      let end_offset = loc.loc_end.buffer_offset in
+      if char = '\n' then begin
+        if !line = !line_start && !line = !line_end then begin
+          (* loc is on one line: underline location *)
+          print_newline ();
+          print_string "  ";
+          for _i = !pos_at_bol to start_offset - 1 do
+            print_char ' ';
+          done;
+          underliner start_offset end_offset;
+        end;
+        if !line >= !line_start && !line < !line_end then begin
+          print_newline ();
+          if pos < end_offset then print_string "  "
+        end;
+        incr line;
+        pos_at_bol := pos + 1;
+      end
+      else if char = '\r' then ()
+      else utf8_handler pos uchar
+    in
+    Array.iteri segment ~f:(fun pos uchar ->
+        if BatUChar.is_ascii uchar
+        then ascii_handler pos uchar
+        else utf8_handler pos uchar);
+    print_newline ()
+                  
 (* Highlight the location using one of the supported modes. *)
 
 (* let rec highlight_locations lb = function *)

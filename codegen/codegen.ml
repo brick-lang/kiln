@@ -149,7 +149,11 @@ and codegen_patterns ps =
     return @@ lazy vs
   end
 
-  
+and codegen_pattern_defaults (ps:PatternDefault.t list) =
+  let open PatternDefault in
+  let ps = List.map ps ~f:(fun {pattern = p; _} -> p) in 
+  codegen_patterns ps
+
 and codegen_structure_item { StructureItem.variant = v; _} =
   let open StructureItem in
   match v with
@@ -171,7 +175,7 @@ and codegen_value_binding { ValueBinding.pattern = p;
         | None -> do_;
             f_name <-- Module.global T.i32 v;
             f_entry <-- Module.local T.i32 "entry";
-            f_args <-- codegen_patterns args;
+            f_args <-- codegen_pattern_defaults args;
             f_val <-- codegen_expr fe;
             m <-- get;
             modify @@ Module.definition begin

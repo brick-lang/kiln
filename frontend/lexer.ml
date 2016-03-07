@@ -65,6 +65,7 @@ let _ =  List.iter ~f:(fun (str,f) ->
       "else", ELSE;
       "end", END;
       "if", IF;
+      "import", IMPORT;
       "in", IN;
       "match", MATCH;
       "or", OR;
@@ -78,6 +79,8 @@ let _ =  List.iter ~f:(fun (str,f) ->
       "return", RETURN;
       "true", TRUE;
       "false", FALSE;
+      "using", USING;
+      "implements", IMPLEMENTS;
     ]
 
 
@@ -199,6 +202,8 @@ let hexnum = [%re? "0x", Plus hexdigit]     (* "0x" hexdigit+ *)
 
 let binnum = [%re? "0b", Plus bindigit]     (* "0b" bindigit+ *)
 
+let version_number = [%re? Plus digit, '.', Plus digit, '.', Plus digit]
+                                            
 let newline = [%re? '\r' | '\n' | "\r\n"]
 
 let string_literal = [%re? '\"', Star any, '\"']
@@ -211,12 +216,18 @@ let ident = [%re? 'a'..'z', Star('a'..'z'|'A'..'Z'|'0'..'9'|'_'|'\'')]
 (* ['A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* *)
 let type_re = [%re? 'A'..'Z', Star('a'..'z'|'A'..'Z'|'0'..'9'|'_')]
 
+(* ( Type_re \.)* ident *)
+let fqident = [%re? Star(type_re, '.'), ident]
+
+let fqtype = [%re? Star(type_re, '.'), type_re]
+
+
 let rec main lexbuf =
   match%sedlex lexbuf with
   | newline  -> NEWLINE
   | " "      -> main lexbuf
   | "#{"     -> incr rcom_count; recursive_comment lexbuf
-  | "#="     -> block_comment lexbuf 
+  | "#="     -> block_comment lexbuf
   | '#'      -> comment lexbuf 
   | '|'      -> PIPE 
   | '_'      -> UNDERSCORE 
@@ -236,10 +247,12 @@ let rec main lexbuf =
   | ']'      -> RBRACKET 
   | ':'      -> COLON 
   | ';'      -> SEMICOLON 
+  | '>'      -> GREATER_THAN
+  | '<'      -> LESS_THAN
   | "->"     -> RIGHT_STAB 
   | "<-"     -> LEFT_STAB 
   | "=>"     -> RIGHT_FAT 
-  | "<="     -> LEFT_FAT 
+  (* | "<="     -> LEFT_FAT  *)
   | "~>"     -> RIGHT_CURVY 
   | "<~"     -> LEFT_CURVY 
   | "<=>"    -> SPACESHIP 
@@ -247,9 +260,12 @@ let rec main lexbuf =
   | "&&"     -> AND 
   | "not"    -> NOT 
 
+  | char_literal -> let c = Sedlexing.Utf8.lexeme lexbuf in
+      assert (String.length c = 3);
+      CHAR (String.get c 1)
+
   | int_literal -> let i = Sedlexing.Utf8.lexeme lexbuf in begin
-      try
-        INT (cvt_int_literal i)
+      try INT (cvt_int_literal i)
       with Failure _ ->
         handle_error lexbuf (Literal_overflow ("int", Location.curr lexbuf));
         raise Error
@@ -272,9 +288,11 @@ let rec main lexbuf =
         raise Error
     end
 
-  | type_re -> let t = Sedlexing.Utf8.lexeme lexbuf in TYPE t 
+  | version_number -> let v = Sedlexing.Utf8.lexeme lexbuf in VERSION_NUMBER v
+    
+  | fqtype -> let t = Sedlexing.Utf8.lexeme lexbuf in TYPE t 
 
-  | ident -> let i = Sedlexing.Utf8.lexeme lexbuf in begin
+  | fqident -> let i = Sedlexing.Utf8.lexeme lexbuf in begin
       match Hashtbl.find keyword_table i with
       | Some(tok) -> tok
       | None ->  IDENT i
@@ -293,14 +311,17 @@ and comment lexbuf = match%sedlex lexbuf with
    * at the end of a comment are not considered part of the
    * token stream, and then resume lexing the next line
    * as source *)
-  | newline -> main lexbuf 
+  | newline -> main lexbuf
 
+  | eof -> EOF
+               
   (* Otherwise, we're part of the comment *)
-  | _ -> comment lexbuf 
+  | _ -> ignore @@ Sedlexing.next lexbuf; comment lexbuf 
 
 and block_comment lexbuf = match%sedlex lexbuf with
-  | "#=" -> main lexbuf 
-  | _    -> block_comment lexbuf 
+  | "#=" -> main lexbuf
+  | eof  -> EOF
+  | _    -> ignore @@ Sedlexing.next lexbuf; block_comment lexbuf
 
 
 (* Support a nested comment syntax! (* Like OCaml! *) *)
@@ -311,6 +332,6 @@ and recursive_comment lexbuf = match%sedlex lexbuf with
       then recursive_comment lexbuf
       else main lexbuf
 
-  | newline -> recursive_comment lexbuf 
-
-  | _    -> recursive_comment lexbuf 
+  | newline -> recursive_comment lexbuf
+  | eof  -> EOF
+  | _    -> ignore @@ Sedlexing.next lexbuf; recursive_comment lexbuf
