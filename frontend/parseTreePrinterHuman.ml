@@ -28,6 +28,10 @@ let fmt_fqident_loc f x =
   fprintf f "\"%a\" %a" fmt_fqident_aux x.txt fmt_location x.loc
 ;;
 
+let fmt_fqident f (x :Fqident.t) = 
+  fprintf f "\"%a\"" fmt_fqident_aux x
+;;
+
 let fmt_string_loc f x =
   fprintf f "\"%s\" %a" x.txt fmt_location x.loc;
 ;;
@@ -100,7 +104,8 @@ let rec core_type i ppf (x:CoreType.t) =
       list i core_type ppf l;
 
   | CoreType.Constructor (li, tl) ->
-      line i ppf "CoreType.Constructor %a\n" fmt_fqident_loc li;
+      line i ppf "CoreType.Constructor\n";
+      line i ppf "%a\n" fmt_fqident li;
       list i core_type ppf tl;
 
   | CoreType.Error ->
@@ -116,6 +121,12 @@ and pattern i ppf (x:Pattern.t) =
 
   | Pattern.Ref_variable (s) -> line i ppf "Pattern.Ref_variable %a\n" fmt_string_loc s;
 
+  | Pattern.Alias (p1, s) ->
+      line i ppf "Pattern.Alias\n";
+      pattern i ppf p1;
+      line i ppf "%a\n" fmt_string_loc s;
+      
+      
   | Pattern.Constant (c) -> line i ppf "Pattern.Constant %a\n" fmt_constant c;
 
   | Pattern.Range (c1, c2) ->
@@ -331,7 +342,7 @@ and let_ i ppf (x:LetStatement.t) =
       future_binding i ppf f
 
   | LetStatement.Import t ->
-      line i ppf "LetStatement.Import";
+      line i ppf "LetStatement.Import\n";
       core_type i ppf t
       
 let implementation ppf x = list 0 structure_item ppf x;;

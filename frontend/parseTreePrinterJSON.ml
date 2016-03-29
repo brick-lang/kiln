@@ -106,7 +106,7 @@ let rec core_type (x:CoreType.t) : json =
 
     | CoreType.Constructor (li, tl) ->
         ["kind", `String "constr"; 
-         "fqident", fqident_loc li;
+         "fqident", `String (fmt_fqident_aux li);
          "core_types", list core_type tl];
 
     | CoreType.Error ->
@@ -127,6 +127,12 @@ and pattern (x:Pattern.t) =
     | Pattern.Ref_variable (s) -> 
         ["kind", `String "ref_var"; 
          "string loc", string_loc s];       
+
+    | Pattern.Alias (p, s) ->
+        ["kind", `String "constr"; 
+         "pattern", pattern p;
+         "string loc", string_loc s];
+        
 
     | Pattern.Constant (c) -> 
         ["kind", `String "constant"; 

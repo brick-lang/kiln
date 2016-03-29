@@ -58,6 +58,7 @@ let _ =  List.iter ~f:(fun (str,f) ->
     ignore (String.Table.add keyword_table ~key:str ~data:f)) 
     [
       "and", AND;
+      "as", AS;
       "assert", ASSERT;
       "begin", BEGIN;
       "class", CLASS;

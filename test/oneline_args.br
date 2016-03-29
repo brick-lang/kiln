@@ -2,3 +2,7 @@ fn foo(x) -> (x)
 fn bar(x) -> x
 fn baz(x) -> (|x'| -> x')(x)
 fn bak(x) -> (|x'| -> x')[x]()
+
+fn fib(0) -> 0
+fn fib(1) -> 1
+fn fib(n) -> fib(n)

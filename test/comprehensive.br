@@ -1,0 +1,15 @@
+using Mortar[0.1.1]
+
+import Mortar.Set.HashSet
+
+s : Set<Int> = set(1,2,3,4)
+
+fn main(argc : Int, argv : List<String>) -> Int
+  let s = set(1,2,3,4)
+      t : Tuple<Int,Int> = (1,2)
+      v = (fst(t), find(s,1))
+      l = |x| -> x
+  in
+   l(snd(v))
+  end
+end

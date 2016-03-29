@@ -48,6 +48,7 @@ let expected ?(suggestion="") name opening closing =
 
 (* TOKENS *)
 %token  BEGIN
+%token  AS	
 %token  ASSERT
 %token  CLASS
 %token  COND
@@ -234,7 +235,7 @@ structure_item_toplevel:
 structure_item:
 
   (* [pattern] = [expr] *)
-  | i = simple_pattern EQUAL e = expr
+  | i = pattern EQUAL e = expr
      {  make_structure (StructureItem.Value (ValueBinding.make i e)) $startpos $endpos }
 
   (* fn [name] [body]  *)
@@ -299,12 +300,15 @@ expr:
   | s = simple_expr %prec below_SHARP { s }
   | LPAREN t = expr COMMA tl = separated_nonempty_list(COMMA, expr) RPAREN %prec below_COMMA
       { make_expression (Expression.Tuple (t::tl)) $startpos $endpos }
+  | LBRACKET t = expr COMMA tl = separated_nonempty_list(COMMA, expr) RBRACKET %prec below_COMMA
+      { make_expression (Expression.Vector (t::tl)) $startpos $endpos }
   | c = call        { c }
   | a = apply       { a }
   | l = let_main    { l }
   (* TODO: match *)
   (* tuples *)
   | f = anon_func { f }
+  (* | c = constructor { c } *)
   (* | error *)
   (*   { expected "an expression" $startpos $endpos; *)
   (*     make_expression Expression.Error $startpos $endpos } *)
@@ -318,8 +322,8 @@ apply:
       { make_expression (Expression.Apply (e, arg_list)) $startpos $endpos }
 
 
-simple_expr:
-  | LPAREN e = expr RPAREN { e }
+simple_expr: 
+ | LPAREN e = expr RPAREN { e }
   (* | LPAREN e = expr error  *)
   (*   { unclosed "{" $startpos($1) $endpos($1) "}" $startpos($3) $endpos($3); *)
   (*     make_expression Expression.Error $startpos $endpos } *)
@@ -353,7 +357,13 @@ pattern:
 simple_pattern:
   | v = IDENT { make_pattern (Pattern.Variable (mkrhs v $startpos(v) $endpos(v))) $startpos $endpos }
   | UNDERSCORE { make_pattern Pattern.Any $startpos $endpos }
-  (* | c = constant *)
+  | p = pattern AS v = IDENT { make_pattern (Pattern.Alias (p,mkrhs v $startpos(v) $endpos(v))) $startpos $endpos }
+  | LPAREN ct = simple_pattern COMMA ctl = separated_nonempty_list(COMMA, simple_pattern) RPAREN
+      { make_pattern (Pattern.Tuple (ct::ctl)) $startpos $endpos }
+  | LBRACKET ct = simple_pattern COMMA ctl = separated_nonempty_list(COMMA, simple_pattern) RBRACKET
+      { make_pattern (Pattern.Vector (ct::ctl)) $startpos $endpos }
+
+  | c = constant { make_pattern (Pattern.Constant c) $startpos $endpos }
   (* | error { expected "a pattern" $startpos $endpos ~suggestion:"use an '_' or '()'"; *)
   (*	    make_pattern Pattern.Error $startpos $endpos } *)
 
@@ -365,9 +375,20 @@ core_type:
       { make_type (Type.Arrow (c1, c2)) $startpos $endpos }
 
 simple_core_type:
-  | QUOTE i = IDENT  { make_type (Type.Variable i) $startpos $endpos }
-  | UNDERSCORE { make_type  Type.Any    $startpos $endpos }
-  | t = TYPE   { make_type (Type.Literal t) $startpos $endpos }
+  | t = TYPE 
+      { make_type (Type.Literal t) $startpos $endpos }
+
+  | QUOTE i = IDENT
+      { make_type (Type.Variable i) $startpos $endpos }
+
+  | UNDERSCORE 
+      { make_type  Type.Any    $startpos $endpos }
+
+  | t = TYPE LESS_THAN ts = separated_nonempty_list(COMMA, core_type) GREATER_THAN
+      { make_type (Type.Constructor (Fqident.parse t, ts)) $startpos $endpos }
+
+
+
 
 simple_core_type_or_tuple:
   | s = simple_core_type   { s }

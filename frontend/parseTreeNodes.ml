@@ -42,7 +42,7 @@ module rec CoreType : sig
      * constructor such as:
      * Vector<Int>
      * Map<String, (Int, Int)> *)
-    | Constructor of Fqident.t location * t list
+    | Constructor of Fqident.t * t list
 
     | Error
 
@@ -71,6 +71,9 @@ and Pattern : sig
      * !x : Int64
     *)
     | Ref_variable of string location
+
+    (* P as 'a *)
+    | Alias of t * string location
 
     (* 1, 'a', "true", 1.0 etc *)
     | Constant of constant

@@ -34,6 +34,8 @@ module Pattern = struct
 
   let any         ?location ()  = make ?location  Any
   let var         ?location a   = make ?location (Variable a)
+  let refvar      ?location a   = make ?location (Ref_variable a)
+  let alias       ?location a b = make ?location (Alias (a, b))
   let constant    ?location a   = make ?location (Constant a)
   let range       ?location a b = make ?location (Range (a, b))
   let tuple       ?location a   = make ?location (Tuple a)
