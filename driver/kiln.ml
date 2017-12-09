@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 
 let fire =
   Command.basic 
@@ -17,7 +17,7 @@ let parse =
     )
     (fun file format () -> 
        (* Fail fast before we start parsing *)
-       if not (List.mem ["human"; "json"] format) then begin
+       if not (List.mem ["human"; "json"] format ~equal:String.equal) then begin
          Printf.fprintf stderr "Error: %s is not a valid parse tree output format\n" format;
          exit 1;
        end;

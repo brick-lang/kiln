@@ -35,14 +35,14 @@ let make_structureexp e = {
 }
 
 let unclosed opening_name opening_sp opening_ep closing_name closing_sp closing_ep =
-  Core.Std.Queue.enqueue Error.errors (Error.Unmatched(symbol_rloc opening_sp opening_ep, opening_name,
+  Core.Queue.enqueue Error.errors (Error.Unmatched(symbol_rloc opening_sp opening_ep, opening_name,
 							      symbol_rloc closing_sp closing_ep, closing_name))
 
 let unexpected ?(suggestion="") name opening closing  =
-  Core.Std.Queue.enqueue Error.errors (Error.Not_expecting(symbol_rloc opening closing, name, suggestion))
+  Core.Queue.enqueue Error.errors (Error.Not_expecting(symbol_rloc opening closing, name, suggestion))
 
 let expected ?(suggestion="") name opening closing =
-  Core.Std.Queue.enqueue Error.errors (Error.Expecting(symbol_rloc opening closing, name, suggestion))
+  Core.Queue.enqueue Error.errors (Error.Expecting(symbol_rloc opening closing, name, suggestion))
 
 %}
 
@@ -375,15 +375,18 @@ core_type:
       { make_type (Type.Arrow (c1, c2)) $startpos $endpos }
 
 simple_core_type:
+  (* Int32 *)
   | t = TYPE 
       { make_type (Type.Literal t) $startpos $endpos }
 
+  (* 'a *)
   | QUOTE i = IDENT
       { make_type (Type.Variable i) $startpos $endpos }
 
   | UNDERSCORE 
       { make_type  Type.Any    $startpos $endpos }
 
+  (* Map<String,Int> *)
   | t = TYPE LESS_THAN ts = separated_nonempty_list(COMMA, core_type) GREATER_THAN
       { make_type (Type.Constructor (Fqident.parse t, ts)) $startpos $endpos }
 

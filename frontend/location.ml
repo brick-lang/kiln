@@ -4,7 +4,7 @@
  * in the future. *)
 
 open Sedlexing
-open Core.Std
+open Core
 
 let absname = ref false
 (* This reference should be in Clflags, but it would create an additional
@@ -65,7 +65,7 @@ let num_loc_lines = ref 0 (* number of lines already printed after input *)
 (*     | c :: l -> result.[i] <- c; imp (i + 1) l in *)
 (*   imp 0 l;; *)
 
-open Textutils.Std 
+open Textutils.Std
 
 
 let highlight_textutils (header: unit -> unit ) lb loc = 
@@ -91,9 +91,9 @@ let highlight_textutils (header: unit -> unit ) lb loc =
     Console.Ansi.printf [`Bright] "%s:%d:%d" lb.curr_pos.file_name (!line_start + 1)
       loc.loc_start.buffer_offset;
     header ();
-    print_newline ();
+    Out_channel.newline stdout;
     print_string "  ";
-    flush stdout;
+    Out_channel.flush stdout;
     let line = ref 0 in
     (* let pos = ref 0 in *)
     let pos_at_bol = ref 0 in
@@ -117,7 +117,7 @@ let highlight_textutils (header: unit -> unit ) lb loc =
              after loc_end, even whitespaces *)
           if pos < loc.loc_end.buffer_offset
           then print_uchar uchar
-          else print_char '.'
+          else Out_channel.output_char stdout '.'
         else if !line > !line_start && !line < !line_end then
           (* intermediate line of multiline loc: print whole line *)
           print_uchar uchar
@@ -141,15 +141,15 @@ let highlight_textutils (header: unit -> unit ) lb loc =
       if char = '\n' then begin
         if !line = !line_start && !line = !line_end then begin
           (* loc is on one line: underline location *)
-          print_newline ();
+          Out_channel.newline stdout;
           print_string "  ";
           for _i = !pos_at_bol to start_offset - 1 do
-            print_char ' ';
+            Out_channel.output_char stdout ' ';
           done;
           underliner start_offset end_offset;
         end;
         if !line >= !line_start && !line < !line_end then begin
-          print_newline ();
+          Out_channel.newline stdout;
           if pos < end_offset then print_string "  "
         end;
         incr line;
@@ -162,7 +162,7 @@ let highlight_textutils (header: unit -> unit ) lb loc =
         if BatUChar.is_ascii uchar
         then ascii_handler pos uchar
         else utf8_handler pos uchar);
-    print_newline ()
+    Out_channel.newline stdout;
                   
 (* Highlight the location using one of the supported modes. *)
 

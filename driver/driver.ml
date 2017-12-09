@@ -6,7 +6,7 @@
    necessary to change this file.
 *)
 
-open Core.Std
+open Core
 open Format
 open Util
 open Util.Support.Error
@@ -227,10 +227,10 @@ let expected ?(suggestion="") name opening closing =
   Parser.Error.Expecting(symbol_rloc opening closing, name, suggestion)
   
 module Queue = struct
-  include Core.Std.Queue
+  include Core.Queue
   let dequeue_apply ~f queue =
-    try for i=0 to (Core.Std.Queue.length queue) - 1 do
-        let elem = Core.Std.Queue.dequeue_exn queue in
+    try for i=0 to (Core.Queue.length queue) - 1 do
+        let elem = Core.Queue.dequeue_exn queue in
         f elem
       done
     with Caml.Queue.Empty -> ()
@@ -340,7 +340,7 @@ let parse lexbuf lexer checkpoint =
   
 
 let parse_file inFile =
-  let pi = open_in inFile in
+  let pi = In_channel.create inFile in
   let lexbuf = Sedlexing.Utf8.from_channel pi in
   let pos : Lexing.position = { Lexing.pos_fname = inFile;
                                 Lexing.pos_lnum = 0; Lexing.pos_bol = 0; Lexing.pos_cnum = 0} in
@@ -351,15 +351,14 @@ let parse_file inFile =
   In_channel.close pi;
   if !Lexer.lexing_error then None else result
 
-let codegen_file inFile =
-  let parsed = match parse_file inFile with Some s -> s | _ -> failwith "Malformed parsetree." in
-  let codegened = List.hd_exn @@ List.map parsed ~f:(Codegen.codegen_structure_item) in
-  let module_name = inFile |> Filename.basename |> Filename.chop_extension in
-  Ollvm.Ez.Module.init module_name ("x86_64", "pc", "linux-gnu") "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
-  |> Codegen.ModuleMonad.exec codegened
+let codegen_file inFile = failwith "Not implemented"
+  (* let parsed = match parse_file inFile with Some s -> s | _ -> failwith "Malformed parsetree." in *)
+  (* let codegened = List.hd_exn @@ List.map parsed ~f:(Codegen.codegen_structure_item) in *)
+  (* let module_name = inFile |> Filename.basename |> Filename.chop_extension in *)
+  (* Ollvm.Ez.Module.init module_name ("x86_64", "pc", "linux-gnu") "e-m:e-i64:64-f80:128-n8:16:32:64-S128" *)
+  (* |> Codegen.ModuleMonad.exec codegened *)
 
 
 (* let process_file f  = *)
 (*   let cmds = parse_file f in *)
 (*   List.iter cmds ~f:(fun e -> Llvm.dump_value (Codegen.codegen_expr e)) *)
-

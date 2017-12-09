@@ -2,7 +2,7 @@
 (* This file represents "fully qualified" identifiers *)
 (* e.g. "Mortar.Collections.BTree.insert" *)
 
-open Core.Std
+open Core
 
 type t =
   | FQident of string

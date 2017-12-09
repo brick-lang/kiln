@@ -200,7 +200,7 @@ let parse_opt flags s =
     if i >= String.length s then () else
       match s.[i] with
       | 'A' .. 'Z' ->
-          List.iter set (letter (Char.lowercase s.[i]));
+          List.iter set (letter (Char.lowercase_ascii s.[i]));
           loop (i+1)
       | 'a' .. 'z' ->
           List.iter clear (letter s.[i]);
@@ -217,7 +217,7 @@ let parse_opt flags s =
           for n = n1 to min n2 last_warning_number do myset n done;
           loop i
       | 'A' .. 'Z' ->
-          List.iter myset (letter (Char.lowercase s.[i]));
+          List.iter myset (letter (Char.lowercase_ascii s.[i]));
           loop (i+1)
       | 'a' .. 'z' ->
           List.iter myset (letter s.[i]);
@@ -384,14 +384,21 @@ let print ppf w =
   for i = 0 to String.length msg - 1 do
     if msg.[i] = '\n' then incr newlines;
   done;
-  let (out, flush, newline, space) =
-    Format.pp_get_all_formatter_output_functions ppf ()
+  let out_functions =
+    Format.pp_get_formatter_out_functions ppf ()
   in
-  let countnewline x = incr newlines; newline x in
-  Format.pp_set_all_formatter_output_functions ppf out flush countnewline space;
+  let countnewline x = incr newlines; out_functions.out_newline x in
+  let new_out_functions = {
+    Format.out_string=out_functions.out_string;
+    Format.out_flush=out_functions.out_flush;
+    Format.out_newline=countnewline;
+    Format.out_spaces=out_functions.out_spaces;
+    Format.out_indent=out_functions.out_indent
+  } in
+  Format.pp_set_formatter_out_functions ppf new_out_functions;
   Format.fprintf ppf "%d: %s" num msg;
   Format.pp_print_flush ppf ();
-  Format.pp_set_all_formatter_output_functions ppf out flush newline space;
+  Format.pp_set_formatter_out_functions ppf out_functions;
   if error.(num) then incr nerrors;
   !newlines
 ;;
@@ -479,10 +486,10 @@ let help_warnings () =
     match letter c with
     | [] -> ()
     | [n] ->
-        Printf.printf "  %c Synonym for warning %i.\n" (Char.uppercase c) n
+        Printf.printf "  %c Synonym for warning %i.\n" (Char.uppercase_ascii c) n
     | l ->
         Printf.printf "  %c Set of warnings %s.\n"
-          (Char.uppercase c)
+          (Char.uppercase_ascii c)
           (String.concat ", " (List.map string_of_int l))
   done;
   exit 0

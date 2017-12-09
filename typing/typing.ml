@@ -1,5 +1,5 @@
 (* let get_type_of_ *)
-open Core.Std
+open Core
 
 module TypeVariable = struct
   type t = { id:int; mutable name:char option; mutable instance:string option }

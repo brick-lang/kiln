@@ -90,7 +90,7 @@ let find_in_path path name =
   end
 
 let find_in_path_uncap path name =
-  let uname = String.uncapitalize name in
+  let uname = String.uncapitalize_ascii name in
   let rec try_dir = function
     | [] -> raise Not_found
     | dir::rem ->
@@ -147,7 +147,7 @@ let string_of_file ic =
   let rec copy () =
     let n = input ic buff 0 0x1000 in
     if n = 0 then Buffer.contents b else
-      (Buffer.add_substring b buff 0 n; copy())
+      (Buffer.add_subbytes b buff 0 n; copy())
   in copy()
 
 
@@ -232,7 +232,7 @@ module LongString = struct
 
   let create str_size =
     let tbl_size = str_size / Sys.max_string_length + 1 in
-    let tbl = Array.make tbl_size "" in
+    let tbl = Array.make tbl_size Bytes.empty in
     for i = 0 to tbl_size - 2 do
       tbl.(i) <- Bytes.create Sys.max_string_length;
     done;
@@ -266,7 +266,7 @@ module LongString = struct
 
   let input_bytes ic len =
     let tbl = create len in
-    Array.iter (fun str -> really_input ic str 0 (String.length str)) tbl;
+    Array.iter (fun str -> really_input ic str 0 (Bytes.length str)) tbl;
     tbl
 end
 

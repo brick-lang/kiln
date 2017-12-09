@@ -51,16 +51,13 @@ Library codegen
   Path:    codegen
   Install: false
   BuildDepends: frontend, util,
-                ppx_monadic,
-                ollvm,
                 llvm,
                 llvm.analysis
 
 Executable kiln
   Path:           driver
   BuildDepends:   frontend, codegen,
-                  util, yojson, ollvm,
-                  ppx_import, ppx_deriving.std
+                  util, yojson
   MainIs:         kiln.ml
   CompiledObject: native
 

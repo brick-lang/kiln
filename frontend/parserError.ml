@@ -23,7 +23,7 @@ type error =
 exception Error of error
 exception Escape_error
 
-let errors : error Core.Std.Queue.t = Core.Std.Queue.create ();;
+let errors : error Core.Queue.t = Core.Queue.create ();;
 
 let prepare_error error = 
   let errorf = Location.errorf ~header:"Syntax Error" in
@@ -37,7 +37,7 @@ let prepare_error error =
         "'%s' expected" closing
 
   | Expecting (location, nonterm, suggestion) ->
-    if Core.Std.String.is_empty suggestion then
+    if Core.String.is_empty suggestion then
       errorf ~location "Expected %s." nonterm
     else
       errorf ~location "Expected %s." nonterm ~sub_errors:[
@@ -45,7 +45,7 @@ let prepare_error error =
       ]
 
   | Not_expecting (location, nonterm, suggestion) ->
-      if Core.Std.String.is_empty suggestion then
+      if Core.String.is_empty suggestion then
         errorf ~location "Unexpected %s." nonterm
       else
         errorf ~location "Unexpected %s." nonterm ~sub_errors:[

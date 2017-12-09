@@ -4,7 +4,7 @@
 (* The lexer definition *)
 
 open Parser
-open Core.Std
+open Core
 
 type error =
   | Illegal_character of string * Location.t
