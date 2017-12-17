@@ -57,7 +57,7 @@ Library codegen
 Executable kiln
   Path:           driver
   BuildDepends:   frontend, codegen,
-                  util, yojson
+                  util, yojson, cmdliner
   MainIs:         kiln.ml
   CompiledObject: native
 
@@ -67,4 +67,3 @@ Executable kiln
 #   Install: false
 #   BuildDepends: frontend, util,
 #                 codegen, driver
-                  
