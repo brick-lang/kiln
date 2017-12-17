@@ -51,8 +51,8 @@ Library codegen
   Path:    codegen
   Install: false
   BuildDepends: frontend, util,
-                llvm,
-                llvm.analysis
+                llvm, llvm.analysis,
+                ollvm, ollvm_llvmgateway
 
 Executable kiln
   Path:           driver
@@ -67,4 +67,3 @@ Executable kiln
 #   Install: false
 #   BuildDepends: frontend, util,
 #                 codegen, driver
-                  

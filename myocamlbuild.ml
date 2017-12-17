@@ -37,8 +37,8 @@ let () =
            flag ["ocaml"; "compile"; "ppx_sedlex"] &
              S [A "-ppx"; A ("sedlex/src/syntax/ppx_sedlex." ^ native_suffix)];
 
-	   (* flag ["ocaml"; "compile"; "ppx_monadic"] & *)
-	   (*   S [A "-ppx"; A (String.trim @@ syscall "which ppx_monadic")]; *)
+	   flag ["ocaml"; "compile"; "ppx_monadic"] &
+	     S [A "-ppx"; A ((String.trim @@ syscall "opam config var ppx_monadic:lib") ^ "/ppx_monadic")];
 	   
            flag ["menhir"; "ocaml"] & S [A "--infer"; A "--table"; A "--inspection";] (* A "--trace"; A "--explain"]; *)
 
