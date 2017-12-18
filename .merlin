@@ -1,10 +1,10 @@
 S codegen
 S driver
 S frontend
-s typing
-s util
-s sedlex/src/lib
-s sedlex/src/syntax
+S typing
+S util
+S sedlex/src/lib
+S sedlex/src/syntax
 B _build/codegen
 B _build/driver
 B _build/frontend
@@ -20,11 +20,9 @@ PKG batteries
 PKG llvm
 PKG yojson
 PKG bytes
-PKG sexplib
 PKG gen
 PKG ppx_tools.metaquot
 PKG menhirLib
-PKG ppx_deriving.std
+PKG cmdliner
 EXT nonrec
 FLG -ppx /home/kate/github/kiln/ppx_sedlex.native
-

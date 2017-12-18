@@ -352,11 +352,20 @@ let parse_file inFile =
   if !Lexer.lexing_error then None else result
 
 let codegen_file inFile = (* failwith "Not implemented" *)
-  let parsed = match parse_file inFile with Some s -> s | _ -> failwith "Malformed parsetree." in
-  let codegened = List.hd_exn @@ List.map parsed ~f:(Codegen.codegen_structure_item) in
   let module_name = inFile |> Filename.basename |> Filename.chop_extension in
-  Ollvm.Ez.Module.init module_name ("x86_64", "pc", "linux-gnu") "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
-  |> Codegen.ModuleMonad.exec codegened
+  (* let parsed = match parse_file inFile with Some s -> s | _ -> failwith "Malformed parsetree." in *)
+  let llvm_global_context = Mllvm.init () in
+  let file_module = Mllvm.(create_module module_name) in
+  Mllvm.(file_module >> dump_module ()) llvm_global_context
+    
+  
+  (* let codegened = List.hd_exn @@ List.map parsed ~f:(Codegen.codegen_structure_item) in *)
+  (* let modul = *)
+    (* Ollvm.Ez.Module.init module_name ("x86_64", "pc", "linux-gnu") "e-m:e-i64:64-f80:128-n8:16:32:64-S128" *)
+    (* |> Codegen.ModuleMonad.exec codegened *)
+  (* in  *)
+  (* Llvm.dump_module @@ (Ollvm_llvmgateway.modul modul.m_module).m; *)
+
 
 
 (* let process_file f  = *)
