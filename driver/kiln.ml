@@ -6,7 +6,7 @@ let fire_docstring = "Compile a project or file"
 let fire_cmd =
   let files = Arg.(value & pos_all file [] & info [] ~docv:"FILE or DIR") in
   let exits = Term.default_exits in
-  Term.(const Driver.codegen_file $ files), Term.info "fire" ~doc:fire_docstring ~exits
+  Term.(const Driver.codegen_files $ files), Term.info "fire" ~doc:fire_docstring ~exits
 
 let parse_docstring = "Parse a file"
 let parse_cmd =

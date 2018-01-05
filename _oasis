@@ -52,7 +52,7 @@ Library codegen
   Install: false
   BuildDepends: frontend, util,
                 llvm,
-                llvm.analysis
+                llvm.analysis, llvm.target, llvm.all_backends
 
 Executable kiln
   Path:           driver

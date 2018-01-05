@@ -87,8 +87,8 @@ module MI = Parser.MenhirInterpreter
 (*   | ASSERT *)
 (*   | AND *)
 (*   [@@deriving show] *)
-  
-            
+
+
 (* let show_terminal (type a) (t : a MI.terminal) : string = *)
 (*   let open MI in match t with  *)
 (*   | T_error -> "T_error" *)
@@ -159,7 +159,7 @@ module MI = Parser.MenhirInterpreter
 (*   | T_ASTERISK -> "T_ASTERISK" *)
 (*   | T_ASSERT -> "T_ASSERT" *)
 (*   | T_AND -> "T_AND" *)
-  
+
 (* let show_nonterminal (type a) (nt : a MI.nonterminal) : string = *)
 (*   let open MI in match nt with *)
 (*   | N_structure_item -> "N_structure_item" *)
@@ -197,7 +197,7 @@ module MI = Parser.MenhirInterpreter
 (*   | N_block -> "N_block" *)
 (*   | N_apply -> "N_apply" *)
 (*   | N_anon_func -> "N_anon_func" *)
-  
+
 (* let print_symbol (s:MI.xsymbol) =  match s with *)
 (*   | MI.X sym -> match sym with *)
 (*     | MI.T symbol -> print_string @@ show_terminal symbol *)
@@ -218,14 +218,14 @@ let symbol_rloc start_pos end_pos = {
 
 let unclosed opening_name opening_sp opening_ep closing_name closing_sp closing_ep =
   Parser.Error.prepare_error (ParserError.Unmatched(symbol_rloc opening_sp opening_ep, opening_name,
-				                    symbol_rloc closing_sp closing_ep, closing_name))
-                                      
+                                                    symbol_rloc closing_sp closing_ep, closing_name))
+
 let unexpected ?(suggestion="") name opening closing  =
   Parser.Error.prepare_error (ParserError.Not_expecting(symbol_rloc opening closing, name, suggestion))
-                                      
+
 let expected ?(suggestion="") name opening closing =
   Parser.Error.Expecting(symbol_rloc opening closing, name, suggestion)
-  
+
 module Queue = struct
   include Core.Queue
   let dequeue_apply ~f queue =
@@ -257,7 +257,7 @@ let get_next_token (lexer : Sedlexing.lexbuf -> Parser.token) =
         );
       next lexbuf
   in next
-  
+
 let parse lexbuf lexer checkpoint =
   let read_triple = get_next_token lexer in
   let print_errors () =
@@ -311,7 +311,7 @@ let parse lexbuf lexer checkpoint =
         (*   match el with *)
         (*   | MI.Element (x,v,_,_) -> v *)
         (* in *)
-        
+
         (* print_endline @@ show_token last_tok; *)
         (* handle_error env; *)
 
@@ -322,8 +322,8 @@ let parse lexbuf lexer checkpoint =
         (* print_endline "LAST GOOD ENV:"; *)
         (* MIP.print_env last_env; *)
         (* print_newline (); *)
-        
-        
+
+
         (* TODO: Do fancy error-recovery things here *)
         let checkpoint = MI.resume checkpoint in
         parse_loop lexbuf last_triple (inputneeded, checkpoint)
@@ -337,7 +337,7 @@ let parse lexbuf lexer checkpoint =
   in
   assert (match checkpoint with MI.InputNeeded _ -> true | _ -> false);
   parse_loop lexbuf None (checkpoint, checkpoint)
-  
+
 
 let parse_file inFile =
   let pi = In_channel.create inFile in
@@ -351,13 +351,13 @@ let parse_file inFile =
   In_channel.close pi;
   if !Lexer.lexing_error then None else result
 
-let codegen_file inFile = failwith "Not implemented"
-  (* let parsed = match parse_file inFile with Some s -> s | _ -> failwith "Malformed parsetree." in *)
-  (* let codegened = List.hd_exn @@ List.map parsed ~f:(Codegen.codegen_structure_item) in *)
-  (* let module_name = inFile |> Filename.basename |> Filename.chop_extension in *)
-  (* Ollvm.Ez.Module.init module_name ("x86_64", "pc", "linux-gnu") "e-m:e-i64:64-f80:128-n8:16:32:64-S128" *)
-  (* |> Codegen.ModuleMonad.exec codegened *)
+let codegen_file inFile = 
+  let parsed = match parse_file inFile with Some s -> s | _ -> failwith "Malformed parsetree." in
+  let codegened = List.hd_exn @@ List.map parsed ~f:(Codegen.codegen_structure_item) in
+  let module_name = inFile |> Filename.basename |> Filename.chop_extension in
+  Codegen.dump_module ()
 
+let codegen_files l = List.map ~f:codegen_file l; ()
 
 (* let process_file f  = *)
 (*   let cmds = parse_file f in *)
