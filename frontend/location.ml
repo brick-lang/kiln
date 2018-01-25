@@ -65,7 +65,7 @@ let num_loc_lines = ref 0 (* number of lines already printed after input *)
 (*     | c :: l -> result.[i] <- c; imp (i + 1) l in *)
 (*   imp 0 l;; *)
 
-open Textutils.Std
+open Textutils
 
 
 let highlight_textutils (header: unit -> unit ) lb loc = 

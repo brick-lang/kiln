@@ -1,0 +1,25 @@
+opam-version: "1.2"
+name: "kiln"
+version: "~unknown"
+maintainer: "Katherine Whitlock <toroidalcode@gmail.com>"
+authors: "Katherine Whitlock <toroidalcode@gmail.com>"
+homepage: "https://github.com/brick-lang/kiln"
+bug-reports: "https://github.com/brick-lang/kiln/issues"
+dev-repo: "https://github.com/brick-lang/kiln"
+license: "BSD-3-clause"
+build: [
+  ["jbuilder" "build" "-p" name "-j" jobs]
+]
+depends: [
+  "batteries"
+  "cmdliner"
+  "core"
+  "jbuilder" {build & >= "1.0+beta12"}
+  "llvm"
+  "menhir"
+  "ppx_let"
+  "textutils"
+  "yojson"
+]
+available: [ ocaml-version >= "4.04.1" ]
+descr: "The reference compiler for the Brick language"

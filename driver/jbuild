@@ -1,0 +1,8 @@
+(executable
+ ((name kiln)
+  (public_name kiln)
+  (modules (kiln driver))
+  (libraries (util frontend codegen
+              yojson cmdliner))))
+
+(jbuild_version 1)

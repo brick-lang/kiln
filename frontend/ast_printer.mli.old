@@ -1,4 +1,4 @@
-open Parsetree;;
+open ParseTree;;
 open Format;;
 
 val implementation : formatter -> structure_item list -> unit;;
