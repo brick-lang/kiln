@@ -37,12 +37,12 @@ let prepare_error error =
         "'%s' expected" closing
 
   | Expecting (location, nonterm, suggestion) ->
-    if Core.String.is_empty suggestion then
-      errorf ~location "Expected %s." nonterm
-    else
-      errorf ~location "Expected %s." nonterm ~sub_errors:[
-        errorf ~location:location "Maybe you meant to use %s?" suggestion
-      ]
+      if Core.String.is_empty suggestion then
+	errorf ~location "Expected %s." nonterm
+      else
+	errorf ~location "Expected %s." nonterm ~sub_errors:[
+          errorf ~location:location "Maybe you meant to use %s?" suggestion
+	]
 
   | Not_expecting (location, nonterm, suggestion) ->
       if Core.String.is_empty suggestion then
@@ -51,7 +51,7 @@ let prepare_error error =
         errorf ~location "Unexpected %s." nonterm ~sub_errors:[
           errorf ~location:location "Maybe you meant to use %s?" suggestion
         ]
-        
+
   | Applicative_path location ->
       Location.error ~header:"Syntax Error" ~location
         "applicative paths of the form F(X).t \

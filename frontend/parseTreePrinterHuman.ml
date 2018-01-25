@@ -125,8 +125,8 @@ and pattern i ppf (x:Pattern.t) =
       line i ppf "Pattern.Alias\n";
       pattern i ppf p1;
       line i ppf "%a\n" fmt_string_loc s;
-      
-      
+
+
   | Pattern.Constant (c) -> line i ppf "Pattern.Constant %a\n" fmt_constant c;
 
   | Pattern.Range (c1, c2) ->
@@ -165,7 +165,7 @@ and pattern_default i ppf (x:PatternDefault.t) =
   | Default d -> 
       line i ppf "default\n";
       expression (i+1) ppf d
-      
+
 and expression i ppf (x:Expression.t) =
   line i ppf "expression %a\n" fmt_location x.Expression.location;
   let i = i+1 in
@@ -292,7 +292,7 @@ and structure_item i ppf (x:StructureItem.t) =
   | StructureItem.Module s ->
       line i ppf "StructureItem.Module\n";
       list i structure_item ppf s
-      
+
   | StructureItem.Error ->
       line i ppf "StructureItem.Error\n"
 
@@ -319,12 +319,12 @@ and bound_call i ppf (x:BoundCall.t) =
   | BoundCall.Synced e ->
       line i ppf "BoundCall.Synced\n";
       expression i ppf e
-      
+
   | BoundCall.Pipelined e ->
       line i ppf "BoundCall.Pipelined\n";
       expression i ppf e
-      
-      
+
+
 and let_ i ppf (x:LetStatement.t) =
   line i ppf "let_struct %a\n" fmt_location x.LetStatement.location;
   let i = i+1 in
@@ -344,5 +344,5 @@ and let_ i ppf (x:LetStatement.t) =
   | LetStatement.Import t ->
       line i ppf "LetStatement.Import\n";
       core_type i ppf t
-      
+
 let implementation ppf x = list 0 structure_item ppf x;;

@@ -343,8 +343,8 @@ let read_pers_struct modname filename =
   check_consistency ps;
   List.iter
     (function Rectypes ->
-      if not !Clflags.recursive_types then
-        error (Need_recursive_types(ps.ps_name, !current_unit)))
+       if not !Clflags.recursive_types then
+         error (Need_recursive_types(ps.ps_name, !current_unit)))
     ps.ps_flags;
   Hashtbl.add persistent_structures modname (Some ps);
   ps
@@ -531,15 +531,15 @@ let rec normalize_path lax env path =
           path'
     | _ -> path
   with Not_found when lax
-                      || (match path with Pident id -> not (Ident.persistent id) | _ -> true) ->
+                   || (match path with Pident id -> not (Ident.persistent id) | _ -> true) ->
       path
 
 let normalize_path oloc env path =
   try normalize_path (oloc = None) env path
   with Not_found ->
-    match oloc with None -> assert false
-                  | Some loc ->
-                      raise (Error(Missing_module(loc, path, normalize_path true env path)))
+  match oloc with None -> assert false
+                | Some loc ->
+                    raise (Error(Missing_module(loc, path, normalize_path true env path)))
 
 let find_module = find_module ~alias:false
 
@@ -550,8 +550,8 @@ let find_type_expansion path env =
   let decl = find_type path env in
   match decl.type_manifest with
   | Some body when decl.type_private = Public
-                   || decl.type_kind <> Type_abstract
-                   || Btype.has_constr_row body ->
+                || decl.type_kind <> Type_abstract
+                || Btype.has_constr_row body ->
       (decl.type_params, body, may_map snd decl.type_newtype_level)
   (* The manifest type of Private abstract data types without
      private row are still considered unknown to the type system.

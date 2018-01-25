@@ -129,9 +129,9 @@ module Make(M : Monad) : S with type 'a t := 'a M.t = struct
   let rec filterM p = function
     | []    -> return @@ lazy []
     | x::xs ->
-      p x >>= fun flg ->
-      filterM p xs >>= fun ys ->
-      return @@ lazy (if flg then x::ys else ys)
+	p x >>= fun flg ->
+	filterM p xs >>= fun ys ->
+	return @@ lazy (if flg then x::ys else ys)
 
   let forM  x y = mapM  y x
   let forM_ x y = mapM_ y x

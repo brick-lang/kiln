@@ -1,5 +1,5 @@
 open Basic
-       
+
 module type S = sig
   type state
   include Monadic.S

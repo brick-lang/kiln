@@ -201,7 +201,7 @@ let hexnum = [%re? "0x", Plus hexdigit]     (* "0x" hexdigit+ *)
 let binnum = [%re? "0b", Plus bindigit]     (* "0b" bindigit+ *)
 
 let version_number = [%re? Plus digit, '.', Plus digit, '.', Plus digit]
-                                            
+
 let newline = [%re? '\r' | '\n' | "\r\n"]
 
 let string_literal = [%re? '\"', Star any, '\"']
@@ -289,7 +289,7 @@ let rec main lexbuf =
     end
 
   | version_number -> let v = Sedlexing.Utf8.lexeme lexbuf in VERSION_NUMBER v
-    
+
   | fqtype -> let t = Sedlexing.Utf8.lexeme lexbuf in TYPE t 
 
   | fqident -> let i = Sedlexing.Utf8.lexeme lexbuf in begin
@@ -314,7 +314,7 @@ and comment lexbuf = match%sedlex lexbuf with
   | newline -> main lexbuf
 
   | eof -> EOF
-               
+
   (* Otherwise, we're part of the comment *)
   | _ -> ignore @@ Sedlexing.next lexbuf; comment lexbuf 
 

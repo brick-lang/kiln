@@ -249,7 +249,7 @@ and StructureItem : sig
     (* Technically Modules could contain "using" statements, but our 
      * parser never builds this. *)
     | Module of Structure.t
-               
+
     | Error
 
 end = StructureItem

@@ -132,7 +132,7 @@ and pattern (x:Pattern.t) =
         ["kind", `String "constr"; 
          "pattern", pattern p;
          "string loc", string_loc s];
-        
+
 
     | Pattern.Constant (c) -> 
         ["kind", `String "constant"; 
@@ -305,11 +305,11 @@ and structure_item x =
     | StructureItem.Import t -> 
         ["kind", `String "import";
          "type", core_type t]
-        
+
     | StructureItem.Module t -> 
         ["kind", `String "module";
          "type", structure t]
-        
+
     | StructureItem.Error ->
         ["kind", `String "error"]
   in `Assoc ls
@@ -325,31 +325,31 @@ and future_binding x =
     "pattern", pattern x.FutureBinding.pattern ;
     "expression", expression x.FutureBinding.expression
   ]
-  
+
 
 (* and bound_call  *)
-  
+
 (* and let_value_binding x = *)
 (*   let ls = *)
 (*     location x.LetValue *)
-  
+
 and let_statement x =
   let ls =
     (location x.LetStatement.location)::
-      match x.LetStatement.variant with
-      | LetStatement.Binding b ->
-          ["kind", `String "binding";
-           "binding", value_binding b]
-      | LetStatement.Future b ->
-          ["kind", `String "future";
-           "binding", future_binding b]
-      (* | LetStatement.Call b -> *)
-      (*     ["kind", `String "call"; *)
-      (*      "binding", value_binding b] *)
-          
-      | LetStatement.Import i ->
-          ["kind", `String "import";
-           "module", core_type i]
+    match x.LetStatement.variant with
+    | LetStatement.Binding b ->
+        ["kind", `String "binding";
+         "binding", value_binding b]
+    | LetStatement.Future b ->
+        ["kind", `String "future";
+         "binding", future_binding b]
+    (* | LetStatement.Call b -> *)
+    (*     ["kind", `String "call"; *)
+    (*      "binding", value_binding b] *)
+
+    | LetStatement.Import i ->
+        ["kind", `String "import";
+         "module", core_type i]
   in `Assoc ls
-  
+
 let implementation (x:Structure.t) : json = structure x;;

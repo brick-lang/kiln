@@ -163,16 +163,16 @@ let highlight_textutils (header: unit -> unit ) lb loc =
         then ascii_handler pos uchar
         else utf8_handler pos uchar);
     Out_channel.newline stdout;
-                  
-(* Highlight the location using one of the supported modes. *)
 
-(* let rec highlight_locations lb = function *)
-(*   | [] -> () *)
-(*   | x::xs ->  *)
-(*     highlight_textutils lb x; *)
-(*     highlight_locations lb xs *)
+    (* Highlight the location using one of the supported modes. *)
 
-(* Print the location in some way or another *)
+    (* let rec highlight_locations lb = function *)
+    (*   | [] -> () *)
+    (*   | x::xs ->  *)
+    (*     highlight_textutils lb x; *)
+    (*     highlight_locations lb xs *)
+
+    (* Print the location in some way or another *)
 
 open Format
 
