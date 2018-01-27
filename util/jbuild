@@ -1,0 +1,5 @@
+(library
+ ((name util)
+  (wrapped false)))
+
+(jbuild_version 1)

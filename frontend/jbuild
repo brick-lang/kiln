@@ -1,0 +1,10 @@
+(library
+ ((name frontend)
+  (wrapped false)
+  (preprocess (pps (sedlex.ppx)))
+  (libraries (util sedlex
+              yojson textutils batteries menhirLib))))
+
+(menhir ((flags ("--table"))    ; --infer --inspection
+         (modules (parser))))
+(jbuild_version 1)
