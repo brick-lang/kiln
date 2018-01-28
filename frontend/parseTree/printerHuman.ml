@@ -1,5 +1,4 @@
-open Asttypes
-open ParseTreeNodes
+open Nodes
 open Sedlexing
 open Format
 open Location
@@ -36,18 +35,16 @@ let fmt_string_loc f x =
   fprintf f "\"%s\" %a" x.txt fmt_location x.loc;
 ;;
 
-let fmt_constant f = function
-  | Const_int (i) -> fprintf f "Const_int %d" i;
+let fmt_constant f c = match c.Constant.variant with
+  | Constant.Int (i) -> fprintf f "Const_int %d" i;
       (* | Const_char (c) -> fprintf f "Const_char %02x" (Char.code c); *)
-  | Const_string (s, None) -> fprintf f "Const_string(%S,None)" s;
-  | Const_string (s, Some delim) ->
-      fprintf f "Const_string (%S,Some %S)" s delim;
-  | Const_float (i) -> fprintf f "Const_float %f" i;
-  | Const_int32 (i) -> fprintf f "Const_int32 %ld" i;
-  | Const_int64 (i) -> fprintf f "Const_int64 %Ld" i;
-  | Const_false -> fprintf f "Const_false false";
-  | Const_true -> fprintf f "Const_true true"
-  | Const_unit -> fprintf f "Const_unit unit"
+  | Constant.String (s) -> fprintf f "Const_string(%S)" s;
+  | Constant.Float (i) -> fprintf f "Const_float %f" i;
+  | Constant.Int32 (i) -> fprintf f "Const_int32 %ld" i;
+  | Constant.Int64 (i) -> fprintf f "Const_int64 %Ld" i;
+  | Constant.False -> fprintf f "Const_false false";
+  | Constant.True -> fprintf f "Const_true true"
+  | Constant.Unit -> fprintf f "Const_unit unit"
 ;;
 
 (* let fmt_private_flag f x = *)
@@ -117,14 +114,14 @@ and pattern i ppf (x:Pattern.t) =
   match x.Pattern.variant with
   | Pattern.Any -> line i ppf "Pattern.Any\n";
 
-  | Pattern.Variable (s) -> line i ppf "Pattern.Variable %a\n" fmt_string_loc s;
+  | Pattern.Variable (s) -> line i ppf "Pattern.Variable %s\n" s;
 
-  | Pattern.Ref_variable (s) -> line i ppf "Pattern.Ref_variable %a\n" fmt_string_loc s;
+  | Pattern.Ref_variable (s) -> line i ppf "Pattern.Ref_variable %s\n" s;
 
   | Pattern.Alias (p1, s) ->
       line i ppf "Pattern.Alias\n";
       pattern i ppf p1;
-      line i ppf "%a\n" fmt_string_loc s;
+      line i ppf "%s\n" s;
 
 
   | Pattern.Constant (c) -> line i ppf "Pattern.Constant %a\n" fmt_constant c;
@@ -170,7 +167,7 @@ and expression i ppf (x:Expression.t) =
   line i ppf "expression %a\n" fmt_location x.Expression.location;
   let i = i+1 in
   match x.Expression.variant with
-  | Expression.Ident (li) -> line i ppf "Expression.Ident %a\n" fmt_fqident_loc li;
+  | Expression.Ident (li) -> line i ppf "Expression.Ident %a\n" fmt_fqident li;
 
   | Expression.Constant (c) -> line i ppf "Expression.Constant %a\n" fmt_constant c;
 

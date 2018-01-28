@@ -1,5 +1,4 @@
-open Asttypes
-open ParseTreeNodes
+open Nodes
 open Sedlexing
 open Format
 open Location
@@ -41,22 +40,22 @@ let string_loc (x : string location) : json =
   ]
 ;;
 
-let fmt_constant (x:constant) : json =
+let fmt_constant (x:Constant.t) : json =
   let ls = 
-    match x with
-    | Const_int (i) -> 
+    match x.Constant.variant with
+    | Constant.Int (i) -> 
         ["kind", `String "int"; "value", `Int i]
-    | Const_string (s, _) -> 
+    | Constant.String (s) -> 
         ["kind", `String "string"; "data", `String s]
-    | Const_float (f) ->
+    | Constant.Float (f) ->
         ["kind", `String "float"; "data", `Float f]
-    | Const_int32 (i) ->
+    | Constant.Int32 (i) ->
         ["kind", `String "int32"; "data", `Int (Int32.to_int i)]
-    | Const_int64 (i) ->
+    | Constant.Int64 (i) ->
         ["kind", `String "int64"; "data", `Int (Int64.to_int i)]
-    | Const_false -> ["kind", `String "bool"; "value", `Bool false]
-    | Const_true -> ["kind", `String "bool"; "value", `Bool true]
-    | Const_unit -> ["kind", `String "unit"; "value", `Null]
+    | Constant.False -> ["kind", `String "bool"; "value", `Bool false]
+    | Constant.True -> ["kind", `String "bool"; "value", `Bool true]
+    | Constant.Unit -> ["kind", `String "unit"; "value", `Null]
   in
   `Assoc ls;
 ;;
@@ -122,16 +121,16 @@ and pattern (x:Pattern.t) =
 
     | Pattern.Variable (s) -> 
         ["kind", `String "var"; 
-         "string loc", string_loc s];      
+         "string", string s];      
 
     | Pattern.Ref_variable (s) -> 
         ["kind", `String "ref_var"; 
-         "string loc", string_loc s];       
+         "string", string s];       
 
     | Pattern.Alias (p, s) ->
         ["kind", `String "constr"; 
          "pattern", pattern p;
-         "string loc", string_loc s];
+         "string", string s];
 
 
     | Pattern.Constant (c) -> 
@@ -188,7 +187,7 @@ and expression (x:Expression.t) =
     match x.Expression.variant with
     | Expression.Ident (li) -> 
         ["kind", `String "ident";
-         "fqident loc", fqident_loc li]
+         "fqident", `String (fmt_fqident_aux li)]
 
     | Expression.Constant (c) -> 
         ["kind", `String "constant";

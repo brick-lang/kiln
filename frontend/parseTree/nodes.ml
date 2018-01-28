@@ -4,7 +4,7 @@
  * information, such as typing
  *)
 
-open Asttypes
+type 'a location = 'a Location.loc
 
 (* To avoid confusion, the work 'variant' is used in 
  * this module to refer to the class of AST node,
@@ -64,22 +64,22 @@ and Pattern : sig
      * prototypes.
      * y : Float
     *)
-    | Variable of string location
+    | Variable of string
 
     (* Like a normal var. Except it points
      * to a ref.
-     * !x : Int64
+     * @x : Int64
     *)
-    | Ref_variable of string location
+    | Ref_variable of string
 
     (* P as 'a *)
-    | Alias of t * string location
+    | Alias of t * string
 
     (* 1, 'a', "true", 1.0 etc *)
-    | Constant of constant
+    | Constant of Constant.t
 
     (* [1 .. 9] *)
-    | Range of constant * constant
+    | Range of Constant.t * Constant.t
 
     (* (P1, ..., Pn) where n >= 2 *)
     | Tuple of t list
@@ -125,10 +125,10 @@ and Expression : sig
 
     (* foo
      * Mortar.Collections.BTree.foo *)
-    | Ident of Fqident.t location
+    | Ident of Fqident.t
 
     (* 1, 'a', "true", 1.0 *)
-    | Constant of constant
+    | Constant of Constant.t
 
 
     (* let P1 = E1
@@ -314,3 +314,20 @@ and LetStatement : sig
     (* import Lattice.Digraph *)
     | Import of CoreType.t
 end = LetStatement
+
+and Constant : sig
+  type t = {
+    variant  : sort;
+    location : Location.t;
+  }
+  and sort =
+    | Int    of int
+    | String of string
+    | Float  of float
+    | Int32  of int32
+    | Int64  of int64
+    | True
+    | False
+    | Unit
+end = Constant
+

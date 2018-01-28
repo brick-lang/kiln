@@ -2,9 +2,16 @@
  ((name frontend)
   (wrapped false)
   (preprocess (pps (sedlex.ppx)))
-  (libraries (util sedlex
-              yojson textutils batteries menhirLib))))
+  (libraries (util sedlex parseTree
+              menhirLib))))
+
+(rule
+ ((targets (parser.mly))
+  (deps    (parser.cppo.mly))
+  (action  (run ${bin:cppo} -n ${<} -o ${@}))))
+
 
 (menhir ((flags ("--table"))    ; --infer --inspection
          (modules (parser))))
+
 (jbuild_version 1)

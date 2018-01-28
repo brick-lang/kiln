@@ -1,0 +1,6 @@
+(library
+ ((name parseTree)
+  (preprocess (pps (sedlex.ppx)))
+  (libraries (util yojson))))
+
+(jbuild_version 1)

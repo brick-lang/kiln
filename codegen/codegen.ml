@@ -37,8 +37,8 @@ let handle_proto (name : string) args : Llvm.llvalue =
   in
   let args = List.map args ~f:(fun {PatternDefault.pattern = p; _} -> p) in
   List.iter2_exn (Array.to_list (Llvm.params f)) args ~f:(fun param var ->
-      let name = match var with { Pattern.variant = (Pattern.Ref_variable {Asttypes.txt = s; _}); _} -> s
-                              | { Pattern.variant = (Pattern.Variable {Asttypes.txt = s; _}); _} -> s
+      let name = match var with { Pattern.variant = (Pattern.Ref_variable s); _} -> s
+                              | { Pattern.variant = (Pattern.Variable s); _} -> s
                               | _ -> assert false
       in
       Llvm.set_value_name name param;
@@ -88,7 +88,7 @@ and codegen_structure_item { StructureItem.variant = v; _} = let open StructureI
   | Value vb -> codegen_value_binding vb
   | _ -> assert false
 and codegen_value_binding { ValueBinding.pattern = p; ValueBinding.expression = e; _} = match (p,e) with
-  | ({ Pattern.variant    = (Pattern.Variable {Asttypes.txt = name; _}); _},
+  | ({ Pattern.variant    = (Pattern.Variable name); _},
      { Expression.variant = (Expression.Function (args, body)); _}) ->
       String.Table.clear named_values;
       let the_function = handle_proto name args in
@@ -112,9 +112,9 @@ and codegen_value_binding { ValueBinding.pattern = p; ValueBinding.expression = 
 
 
   | _ -> assert false
-and codegen_constant c = let open Asttypes in match c with 
-  | Const_int i -> Llvm.const_int (Llvm.i64_type context) i
-  | Const_float f -> Llvm.const_float (Llvm.float_type context) f
+and codegen_constant {Constant.variant} = match variant with 
+  | Constant.Int i -> Llvm.const_int (Llvm.i64_type context) i
+  | Constant.Float f -> Llvm.const_float (Llvm.float_type context) f
   | _ -> assert false
 
 (* | Parsetree.Integer (num) -> Llvm.const_int (Llvm.i64_type context) num *)

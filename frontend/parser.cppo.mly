@@ -1,33 +1,26 @@
 %{
 open Lexing
 open ParseTree
-open Asttypes
 module Error = ParserError
 
-let symbol_rloc start_pos end_pos = {
+let rloc start_pos end_pos = {
   Location.loc_start = Sedlexing.pos_sedlexing start_pos;
   Location.loc_end   = Sedlexing.pos_sedlexing end_pos;
   Location.loc_ghost = false;
-};;
+}
 
-let symbol_gloc start_pos end_pos = {
+let gloc start_pos end_pos = {
   Location.loc_start = Sedlexing.pos_sedlexing start_pos;
   Location.loc_end   = Sedlexing.pos_sedlexing end_pos;
   Location.loc_ghost = true;
-};;
+}
 
-let make_type       d   sp ep = Type.make          ~location:(symbol_rloc sp ep) d
-let make_pattern    d   sp ep = Pattern.make       ~location:(symbol_rloc sp ep) d
-let make_expression d   sp ep = Expression.make    ~location:(symbol_rloc sp ep) d
-let make_structure  d   sp ep = StructureItem.make ~location:(symbol_rloc sp ep) d
-let make_let_statement d sp ep = LetStatement.make     ~location:(symbol_rloc sp ep) d
+#define here     (rloc $startpos    $endpos)
+#define there(v) (rloc $startpos(v) $endpos(v))
 
-let mkrhs rhs sp ep = Location.mkloc rhs (symbol_rloc sp ep)
-let reloc_pat x sp ep = { x with Pattern.location = symbol_rloc sp ep };;
-let reloc_exp x sp ep = { x with Expression.location = symbol_rloc sp ep };;
-
-let make_patternvar name sp ep =
-  Pattern.make ~location:(symbol_rloc sp ep) (Pattern.Variable (mkrhs name sp ep))
+let mkrhs ~loc rhs = Location.mkloc rhs loc
+let reloc_pat x sp ep = { x with Pattern.location = rloc sp ep }
+let reloc_exp x sp ep = { x with Expression.location = rloc sp ep }
 
 let make_structureexp e = {
   StructureItem.variant = StructureItem.Value e;
@@ -35,14 +28,14 @@ let make_structureexp e = {
 }
 
 let unclosed opening_name opening_sp opening_ep closing_name closing_sp closing_ep =
-  Core.Queue.enqueue Error.errors (Error.Unmatched(symbol_rloc opening_sp opening_ep, opening_name,
-							      symbol_rloc closing_sp closing_ep, closing_name))
+  Core.Queue.enqueue Error.errors (Error.Unmatched(rloc opening_sp opening_ep, opening_name,
+						   rloc closing_sp closing_ep, closing_name))
 
 let unexpected ?(suggestion="") name opening closing  =
-  Core.Queue.enqueue Error.errors (Error.Not_expecting(symbol_rloc opening closing, name, suggestion))
+  Core.Queue.enqueue Error.errors (Error.Not_expecting(rloc opening closing, name, suggestion))
 
 let expected ?(suggestion="") name opening closing =
-  Core.Queue.enqueue Error.errors (Error.Expecting(symbol_rloc opening closing, name, suggestion))
+  Core.Queue.enqueue Error.errors (Error.Expecting(rloc opening closing, name, suggestion))
 
 %}
 
@@ -107,7 +100,7 @@ let expected ?(suggestion="") name opening closing =
 %token <int32> INT32
 %token <int64> INT64
 %token <float> FLOAT
-%token <string * string option> STRING
+%token <string> STRING
 %token <char> CHAR
 %token <string> TYPE
 %token <string> IDENT
@@ -136,7 +129,7 @@ let expected ?(suggestion="") name opening closing =
  *
  * By default, a rule has the precedence of its rightmost terminal (if any).
  *
- * When there is a shift/reduce conflict between a rule and a token that
+ * When ~loc:t~loc:here is a shift/reduce conflict between a rule and a token that
  * have the same precedence, it is resolved using the associativity:
  * if the token is left-associative, the parser will reduce; if
  * right-associative, the parser will shift; if non-associative,
@@ -224,7 +217,7 @@ structure_item_toplevel:
 
   (* using Mortar[0.0.1] *)
   | USING t = TYPE LBRACKET v = VERSION_NUMBER RBRACKET
-      { make_structure (StructureItem.Using (make_type (Type.Literal t) $startpos(t) $endpos(t), v)) $startpos $endpos}
+    { StructureItem.using (Type.lit t ~loc:there(t)) v ~loc:here }
 
   (* structure... *)
   | s = structure_item { s }
@@ -236,15 +229,15 @@ structure_item:
 
   (* [pattern] = [expr] *)
   | i = pattern EQUAL e = expr
-     {  make_structure (StructureItem.Value (ValueBinding.make i e)) $startpos $endpos }
+     { StructureItem.value ~loc:here (ValueBinding.make i e ~loc:here) }
 
   (* fn [name] [body]  *)
   | FUNCTION i = simple_pattern f = func_proto_body
-      { make_structure (StructureItem.Value (ValueBinding.make ~location:(symbol_rloc $startpos $endpos) i f)) $startpos $endpos }
+      { StructureItem.value ~loc:here (ValueBinding.make i f ~loc:here) }
 
   (* import [Module] *)
   | IMPORT t = TYPE
-      { make_structure (StructureItem.Import (make_type (Type.Literal t) $startpos(t) $endpos(t))) $startpos $endpos }
+      { StructureItem.import ~loc:here (Type.lit t ~loc:here) }
 
   (* module Something; [stuct_item]; end *)
   (* | MODULE t = TYPE sep+ se = many_delim(structure_item, sep)* END { se } *)
@@ -278,8 +271,8 @@ seq_expr:
   | e = expr sep+              { reloc_exp e $startpos $endpos }
 
   (* [expr] [sep]+ [seq_expr] *)
-  | e = expr sep+ s = seq_expr { make_expression (Expression.Sequence (e, s)) $startpos $endpos }
-  (* | error { Queue.add (Syntax_error.Expecting ((symbol_rloc $startpos $endpos), "expr")) errors; *)
+  | e = expr sep+ s = seq_expr { Expression.sequence e s ~loc:here }
+  (* | error { Queue.add (Syntax_error.Expecting ((rloc $startpos $endpos), "expr")) errors; *)
   (*           make_expression Pexp_err $startpos $endpos } *)
 
 
@@ -293,15 +286,15 @@ labeled_simple_pattern:
 
 let_pattern:
   | p = pattern { p }
-  | p = pattern COLON c = core_type { make_pattern (Pattern.Constraint(p,c)) $startpos $endpos }
+  | p = pattern COLON c = core_type { Pattern.constraint_ p c ~loc:here }
 
 
 expr:
   | s = simple_expr %prec below_SHARP { s }
   | LPAREN t = expr COMMA tl = separated_nonempty_list(COMMA, expr) RPAREN %prec below_COMMA
-      { make_expression (Expression.Tuple (t::tl)) $startpos $endpos }
+      { Expression.tuple ~loc:here (t::tl) }
   | LBRACKET t = expr COMMA tl = separated_nonempty_list(COMMA, expr) RBRACKET %prec below_COMMA
-      { make_expression (Expression.Vector (t::tl)) $startpos $endpos }
+      { Expression.vector ~loc:here (t::tl) }
   | c = call        { c }
   | a = apply       { a }
   | l = let_main    { l }
@@ -315,11 +308,11 @@ expr:
 
 call:
   | e = expr arg_list = delimited(LPAREN,separated_list(COMMA,expr),RPAREN)
-      { make_expression (Expression.Call (e, arg_list)) $startpos $endpos }
+      { Expression.call ~loc:here e arg_list }
 
 apply:
   | e = expr arg_list = delimited(LBRACKET,separated_list(COMMA,expr),RBRACKET)
-      { make_expression (Expression.Apply (e, arg_list)) $startpos $endpos }
+      { Expression.apply ~loc:here e arg_list }
 
 
 simple_expr: 
@@ -328,9 +321,9 @@ simple_expr:
   (*   { unclosed "{" $startpos($1) $endpos($1) "}" $startpos($3) $endpos($3); *)
   (*     make_expression Expression.Error $startpos $endpos } *)
   | c = constant
-	  { make_expression (Expression.Constant c) $startpos $endpos }
+	  { Expression.constant c ~loc:here }
   | b = block { b }
-  | v = IDENT { make_expression (Expression.Ident (mkrhs (Fqident.parse v) $startpos(v) $endpos(v))) $startpos $endpos }
+  | v = IDENT { Expression.ident (Fqident.parse v) ~loc:here }
 
 
 block:
@@ -352,18 +345,18 @@ block:
 pattern:
   | s = simple_pattern { s }
   | s = simple_pattern COLON ct = core_type
-      { make_pattern (Pattern.Constraint (s, ct)) $startpos(s) $endpos(s) }
+      { Pattern.constraint_ ~loc:here s ct }
 
 simple_pattern:
-  | v = IDENT { make_pattern (Pattern.Variable (mkrhs v $startpos(v) $endpos(v))) $startpos $endpos }
-  | UNDERSCORE { make_pattern Pattern.Any $startpos $endpos }
-  | p = pattern AS v = IDENT { make_pattern (Pattern.Alias (p,mkrhs v $startpos(v) $endpos(v))) $startpos $endpos }
+  | v = IDENT { Pattern.var v ~loc:here }
+  | UNDERSCORE { Pattern.any () ~loc:here }
+  | p = pattern AS v = IDENT { Pattern.alias p v ~loc:here }
   | LPAREN ct = simple_pattern COMMA ctl = separated_nonempty_list(COMMA, simple_pattern) RPAREN
-      { make_pattern (Pattern.Tuple (ct::ctl)) $startpos $endpos }
+      { Pattern.tuple (ct::ctl) ~loc:here }
   | LBRACKET ct = simple_pattern COMMA ctl = separated_nonempty_list(COMMA, simple_pattern) RBRACKET
-      { make_pattern (Pattern.Vector (ct::ctl)) $startpos $endpos }
+      { Pattern.vector (ct::ctl) ~loc:here }
 
-  | c = constant { make_pattern (Pattern.Constant c) $startpos $endpos }
+  | c = constant { Pattern.constant c ~loc:here }
   (* | error { expected "a pattern" $startpos $endpos ~suggestion:"use an '_' or '()'"; *)
   (*	    make_pattern Pattern.Error $startpos $endpos } *)
 
@@ -372,23 +365,23 @@ simple_pattern:
 core_type:
   | s = simple_core_type_or_tuple { s }
   | c1 = core_type RIGHT_STAB c2 = core_type
-      { make_type (Type.Arrow (c1, c2)) $startpos $endpos }
+      { Type.arrow c1 c2 ~loc:here }
 
 simple_core_type:
   (* Int32 *)
   | t = TYPE 
-      { make_type (Type.Literal t) $startpos $endpos }
+      { Type.lit t ~loc:here }
 
   (* 'a *)
   | QUOTE i = IDENT
-      { make_type (Type.Variable i) $startpos $endpos }
+      { Type.var i ~loc:here }
 
   | UNDERSCORE 
-      { make_type  Type.Any    $startpos $endpos }
+      { Type.any () ~loc:here }
 
   (* Map<String,Int> *)
   | t = TYPE LESS_THAN ts = separated_nonempty_list(COMMA, core_type) GREATER_THAN
-      { make_type (Type.Constructor (Fqident.parse t, ts)) $startpos $endpos }
+      { Type.constructor (Fqident.parse t) ts ~loc:here }
 
 
 
@@ -396,7 +389,7 @@ simple_core_type:
 simple_core_type_or_tuple:
   | s = simple_core_type   { s }
   | LPAREN ct = simple_core_type COMMA ctl = separated_nonempty_list(COMMA, simple_core_type) RPAREN
-     { make_type (Type.Tuple (ct::ctl)) $startpos $endpos }
+     { Type.tuple (ct::ctl) ~loc:here }
 
 
 anon_func:
@@ -404,16 +397,16 @@ anon_func:
   | FUNCTION f = func_proto_body { f }
   (* |x,y,...z| [tail] *)
   | pl = delimited_by(PIPE, separated_nonempty_list(COMMA, pattern_opt_default)) e = func_proto_tail
-      { make_expression (Expression.Function (pl, e)) $startpos $endpos }
+      { Expression.fn pl e ~loc:here }
   (* | error func_proto_body  *)
   (*     { make_expression Pexp_err $startpos($1) $endpos($1) } *)
 
 func_proto_body:
   (* (x...) [tail] *)
   | p = delimited(LPAREN, arg_list, RPAREN) e = func_proto_tail
-    { make_expression (Expression.Function (p, e)) $startpos $endpos }
+    { Expression.fn p e ~loc:here }
   (* [tail] *)
-  | e = func_proto_tail { make_expression (Expression.Function ([],e)) $startpos $endpos }
+  | e = func_proto_tail { Expression.fn [] e ~loc:here }
 
 func_proto_tail:
   (* | rs = RIGHT_STAB e = expr sep+ seq_expr en = END { *)
@@ -433,11 +426,11 @@ func_proto_tail:
 
   (* -> Unit { [body] } *)
   | RIGHT_STAB ct = core_type LCURLY sep* body = seq_expr RCURLY
-    { make_expression (Expression.Constraint (body, ct)) $startpos(body) $endpos(body) }
+    { Expression.constraint_ body ct ~loc:there(body) }
 
   (* -> [Type]; [body] end *)
   | RIGHT_STAB ct = core_type sep+ body = seq_expr END
-    { make_expression (Expression.Constraint (body, ct)) $startpos(body) $endpos(body) }
+    { Expression.constraint_ body ct ~loc:there(body) }
 
   (* ; [body] end *)
   | sep+ body = seq_expr END { body }
@@ -452,8 +445,8 @@ func_proto_tail:
 pattern_opt_default:
   | p = pattern e = preceded(EQUAL, expr)? 
       { match e with 
-	| None   -> PatternDefault.none ~location:(symbol_rloc $startpos $endpos) p
-	| Some d -> PatternDefault.default ~location:(symbol_rloc $startpos $endpos) p d }
+	| None   -> PatternDefault.none p ~loc:here
+	| Some d -> PatternDefault.default p d ~loc:here }
 
 
 let_main:
@@ -461,7 +454,7 @@ let_main:
 (* | LET sep* lb = let_binding sep+ lbs = let_binding* sep* IN sep* e = seq_expr END  *)
 (* | LET sep* lb = let_binding lbs = let_binding_many* sep* IN sep* e = seq_expr END  *)
   | LET sep* lb = let_binding_many sep* IN sep* e = seq_expr END
-    { make_expression (Expression.Let (lb, e)) $startpos $endpos }
+    { Expression.let_ lb e ~loc:here }
 
 let_binding_many:
   | lb = let_binding { [lb] }
@@ -470,22 +463,22 @@ let_binding_many:
 let_binding:
   (* x = [expr] sep+ *)
   | p = pattern EQUAL e = expr
-      { make_let_statement (LetStatement.Binding (ValueBinding.make ~location:(symbol_rloc $startpos $endpos) p e)) $startpos $endpos }
+      { LetStatement.binding ~loc:here (ValueBinding.make p e ~loc:here) }
 
   | p = pattern RIGHT_STAB e = expr
-      { make_let_statement (LetStatement.Call (BoundCall.pipelined ~location:(symbol_rloc $startpos $endpos) p e)) $startpos $endpos }
+      { LetStatement.call ~loc:here (BoundCall.pipelined p e ~loc:here) }
 
   | p = pattern RIGHT_FAT e = expr
-      { make_let_statement (LetStatement.Call (BoundCall.forked    ~location:(symbol_rloc $startpos $endpos) p e)) $startpos $endpos }
+     { LetStatement.call ~loc:here (BoundCall.forked p e ~loc:here) }
 
   | p = pattern RIGHT_CURVY e = expr
-      { make_let_statement (LetStatement.Call (BoundCall.synced    ~location:(symbol_rloc $startpos $endpos) p e)) $startpos $endpos }
+      { LetStatement.call ~loc:here (BoundCall.synced p e ~loc:here) }
 
   | p = pattern LEFT_STAB e = expr
-      { make_let_statement (LetStatement.Future (FutureBinding.make    ~location:(symbol_rloc $startpos $endpos) p e)) $startpos $endpos }
+      { LetStatement.future ~loc:here (FutureBinding.make p e ~loc:here) }
 
   | IMPORT t = TYPE
-      { make_let_statement (LetStatement.Import (make_type (Type.Literal t) $startpos(t) $endpos(t))) $startpos $endpos }
+      { LetStatement.import ~loc:here (Type.lit t ~loc:there(t)) }
 
 pnt_exec:
   (* -> [expr] *)
@@ -496,22 +489,22 @@ pnt_exec:
 
 (* Constants *)
 constant:
-  | i = INT         { Const_int i }
-  | sd = STRING     { let (s,d) = sd in Const_string (s,d) }
-  | f = FLOAT       { Const_float f }
-  | i = INT32       { Const_int32 i }
-  | i = INT64       { Const_int64 i }
-  | LPAREN RPAREN   { Const_unit }
-  | TRUE            { Const_true }
-  | FALSE           { Const_false }
+  | i = INT         { Constant.int i     ~loc:here }
+  | s = STRING      { Constant.string s  ~loc:here }
+  | f = FLOAT       { Constant.float f   ~loc:here }
+  | i = INT32       { Constant.int32 i   ~loc:here }
+  | i = INT64       { Constant.int64 i   ~loc:here }
+  | LPAREN RPAREN   { Constant.unit ()   ~loc:here }
+  | TRUE            { Constant.true_ ()  ~loc:here }
+  | FALSE           { Constant.false_ () ~loc:here }
 
 signed_constant:
   | c = constant        { c }
-  | MINUS i = INT       { Const_int(- i) }
-  | MINUS f = FLOAT     { Const_float("-" ^ f) }
-  | MINUS i = INT32     { Const_int32(Int32.neg i) }
-  | MINUS i = INT64     { Const_int64(Int64.neg i) }
-  | PLUS i = INT        { Const_int i }
-  | PLUS f = FLOAT      { Const_float f }
-  | PLUS i = INT32      { Const_int32 i }
-  | PLUS i = INT64      { Const_int64 i }
+  | MINUS i = INT       { Constant.int(- i) ~loc:here }
+  | MINUS f = FLOAT     { Constant.float("-" ^ f)      ~loc:here }
+  | MINUS i = INT32     { Constant.int32(Int32.neg i)  ~loc:here }
+  | MINUS i = INT64     { Constant.int64(Int64.neg i)  ~loc:here }
+  | PLUS i = INT        { Constant.int i    ~loc:here }
+  | PLUS f = FLOAT      { Constant.float f  ~loc:here }
+  | PLUS i = INT32      { Constant.int32 i  ~loc:here }
+  | PLUS i = INT64      { Constant.int64 i  ~loc:here }

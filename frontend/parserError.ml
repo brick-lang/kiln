@@ -12,6 +12,8 @@
 
 (* Auxiliary type for reporting syntax errors *)
 
+module Location = Location
+
 type error =
   | Unmatched of Location.t * string * Location.t * string
   | Expecting of Location.t * string * string

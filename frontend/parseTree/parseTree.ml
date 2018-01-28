@@ -1,13 +1,15 @@
 (* The ParseTree organizing module *)
 
 (* Public interface *)
-include ParseTreeBuilder
+include Builder
 
 (* Full node listing *)
-module Nodes = ParseTreeNodes
+module Nodes = Nodes
 
 (* Pretty-printers *)
 module Printers = struct
-  module Human = ParseTreePrinterHuman
-  module JSON  = ParseTreePrinterJSON
+  module Human = PrinterHuman
+  module JSON  = PrinterJSON
 end
+
+module Fqident = Fqident

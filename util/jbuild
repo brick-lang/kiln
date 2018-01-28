@@ -1,5 +1,6 @@
 (library
  ((name util)
-  (wrapped false)))
+  (wrapped false)
+  (libraries (core textutils batteries sedlex))))
 
 (jbuild_version 1)
