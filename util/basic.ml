@@ -9,7 +9,7 @@ let seq  _ x = x
 (** Function composition *)
 (* OCaml doesn't let us use the (.) operator, so I just use ( *.* ), *)
 (* which has a higher precedence than "@@" and "|>" *)
-let ( *.* ) f g = fun x -> f (g x)
+let ( <.> ) f g = fun x -> f (g x)
 
 (** Flip takes its (first) two arguments in the reverse order of f *)
 let flip f x y = f y x

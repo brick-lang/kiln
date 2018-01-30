@@ -20,11 +20,9 @@ let last = function
   | FQdot(_, s) -> s
 
 let rec split_at_dots s pos =
-  try
-    let dot = String.index_from_exn s pos '.' in (* TODO: make this use the option type for safety *)
-    String.sub s pos (dot - pos) :: split_at_dots s (dot + 1)
-  with Not_found ->
-    [String.sub s pos (String.length s - pos)]
+  match String.index_from s pos '.' with 
+  | Some dot -> String.sub s pos (dot - pos) :: split_at_dots s (dot + 1)
+  | None -> [String.sub s pos (String.length s - pos)]
 
 let parse s =
   match split_at_dots s 0 with

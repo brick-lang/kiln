@@ -1,0 +1,7 @@
+(library
+ ((name common)
+  (libraries (util
+              core textutils sedlex))
+  (preprocess (pps (ppx_deriving.std)))))
+
+(jbuild_version 1)

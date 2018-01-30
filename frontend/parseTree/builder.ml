@@ -1,12 +1,9 @@
-
-
 (** Helpers to produce Parsetree fragments *)
 
 type lid = Fqident.t 
-type str = string Location.loc
-type location = Location.t
+type location = Common.Location.t
 
-let default_location = ref Location.none
+let default_location = ref Common.Location.none
 
 let with_default_location l f =
   let old = !default_location in
@@ -95,6 +92,7 @@ module StructureItem = struct
   let value     ?loc a   = make ?loc (Value a)
   let using     ?loc a b = make ?loc (Using (a, b))
   let import    ?loc a   = make ?loc (Import a)
+  let within    ?loc a   = make ?loc (Within a)
 end
 
 module ValueBinding = struct

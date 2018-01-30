@@ -3,39 +3,17 @@ open Lexing
 open ParseTree
 module Error = ParserError
 
-let rloc start_pos end_pos = {
-  Location.loc_start = Sedlexing.pos_sedlexing start_pos;
-  Location.loc_end   = Sedlexing.pos_sedlexing end_pos;
-  Location.loc_ghost = false;
-}
+#define here     (Common.Location.rloc $startpos    $endpos)
+#define there(v) (Common.Location.rloc $startpos(v) $endpos(v))
 
-let gloc start_pos end_pos = {
-  Location.loc_start = Sedlexing.pos_sedlexing start_pos;
-  Location.loc_end   = Sedlexing.pos_sedlexing end_pos;
-  Location.loc_ghost = true;
-}
-
-#define here     (rloc $startpos    $endpos)
-#define there(v) (rloc $startpos(v) $endpos(v))
-
-let mkrhs ~loc rhs = Location.mkloc rhs loc
-let reloc_pat x sp ep = { x with Pattern.location = rloc sp ep }
-let reloc_exp x sp ep = { x with Expression.location = rloc sp ep }
+let mkrhs ~loc rhs = Common.Location.mkloc rhs loc
+let reloc_pat x sp ep = { x with Pattern.location = Common.Location.rloc sp ep }
+let reloc_exp x sp ep = { x with Expression.location = Common.Location.rloc sp ep }
 
 let make_structureexp e = {
   StructureItem.variant = StructureItem.Value e;
   StructureItem.location = e.ValueBinding.location
 }
-
-let unclosed opening_name opening_sp opening_ep closing_name closing_sp closing_ep =
-  Core.Queue.enqueue Error.errors (Error.Unmatched(rloc opening_sp opening_ep, opening_name,
-						   rloc closing_sp closing_ep, closing_name))
-
-let unexpected ?(suggestion="") name opening closing  =
-  Core.Queue.enqueue Error.errors (Error.Not_expecting(rloc opening closing, name, suggestion))
-
-let expected ?(suggestion="") name opening closing =
-  Core.Queue.enqueue Error.errors (Error.Expecting(rloc opening closing, name, suggestion))
 
 %}
 
@@ -58,6 +36,7 @@ let expected ?(suggestion="") name opening closing =
 %token  LET      (* variable binding*)
 %token  FUNCTION (* function creation *)
 %token  USING
+%token  WITHIN
 %token  IMPLEMENTS
 %token  IMPORT
 %token  RETURN
@@ -129,7 +108,7 @@ let expected ?(suggestion="") name opening closing =
  *
  * By default, a rule has the precedence of its rightmost terminal (if any).
  *
- * When ~loc:t~loc:here is a shift/reduce conflict between a rule and a token that
+ * When there is a shift/reduce conflict between a rule and a token that
  * have the same precedence, it is resolved using the associativity:
  * if the token is left-associative, the parser will reduce; if
  * right-associative, the parser will shift; if non-associative,
@@ -180,8 +159,39 @@ let expected ?(suggestion="") name opening closing =
 	  LBRACE LBRACKET LPAREN STRING TRUE
 
 
+%type <ParseTree.Structure.t option> option(preceded(nonempty_list(sep),structure_toplevel))
+%type <ParseTree.Structure.t> structure_toplevel
+%type <ParseTree.StructureItem.t> structure_item_toplevel structure_item
+%type <unit list> nonempty_list(sep) list(sep)
+%type <unit> sep
+
+%type <ParseTree.Expression.t option> option(preceded(EQUAL,expr))
+%type <ParseTree.Expression.t list> separated_nonempty_list(COMMA,expr) loption(separated_nonempty_list(COMMA,expr))
+%type <ParseTree.Expression.t> seq_expr expr call apply simple_expr block
+
+%type <ParseTree.Pattern.t list> separated_nonempty_list(COMMA,simple_pattern)
+%type <ParseTree.Pattern.t> labeled_simple_pattern pattern simple_pattern
+
+%type <ParseTree.Type.t list> separated_nonempty_list(COMMA,simple_core_type)  separated_nonempty_list(COMMA,core_type)
+%type <ParseTree.Type.t> core_type simple_core_type simple_core_type_or_tuple
+
+%type <ParseTree.Expression.t> anon_func func_proto_body func_proto_tail
+
+%type <ParseTree.PatternDefault.t list> loption(separated_nonempty_list(COMMA,pattern_opt_default))
+%type <ParseTree.PatternDefault.t list> separated_nonempty_list(COMMA,pattern_opt_default)
+%type <ParseTree.PatternDefault.t> pattern_opt_default
+
+%type <ParseTree.Expression.t> let_main
+
+%type <ParseTree.LetStatement.t list> let_binding_many
+%type <ParseTree.LetStatement.t> let_binding
+
+%type <ParseTree.Expression.variant> pnt_exec
+
+%type <ParseTree.Constant.t> constant signed_constant
+
 (* Entry points into the parser*)
-%start <ParseTree.Nodes.Structure.t> file_input
+%start <ParseTree.Structure.t> file_input
 (* %start <Parsetree.core_type> parse_core_type *)
 (* %start <ParseTree.Nodes.Expression.t> parse_expression *)
 (* %start <ParseTree.Nodes.Pattern.t> parse_pattern *)
@@ -217,8 +227,11 @@ structure_item_toplevel:
 
   (* using Mortar[0.0.1] *)
   | USING t = TYPE LBRACKET v = VERSION_NUMBER RBRACKET
-    { StructureItem.using (Type.lit t ~loc:there(t)) v ~loc:here }
+      { StructureItem.using (Type.lit t ~loc:there(t)) v ~loc:here }
 
+  | WITHIN t = TYPE
+      { StructureItem.within (Type.lit t ~loc:there(t)) ~loc:here }
+  
   (* structure... *)
   | s = structure_item { s }
 
@@ -284,11 +297,6 @@ labeled_simple_pattern:
   (* [pattern] *)
   | s = simple_pattern           { ("", None, s) }
 
-let_pattern:
-  | p = pattern { p }
-  | p = pattern COLON c = core_type { Pattern.constraint_ p c ~loc:here }
-
-
 expr:
   | s = simple_expr %prec below_SHARP { s }
   | LPAREN t = expr COMMA tl = separated_nonempty_list(COMMA, expr) RPAREN %prec below_COMMA
@@ -302,46 +310,33 @@ expr:
   (* tuples *)
   | f = anon_func { f }
   (* | c = constructor { c } *)
-  (* | error *)
-  (*   { expected "an expression" $startpos $endpos; *)
-  (*     make_expression Expression.Error $startpos $endpos } *)
 
 call:
+  (* expr(a1,a2,...) *)
   | e = expr arg_list = delimited(LPAREN,separated_list(COMMA,expr),RPAREN)
       { Expression.call ~loc:here e arg_list }
 
 apply:
+  (* expr[a1,a2,...] *)
   | e = expr arg_list = delimited(LBRACKET,separated_list(COMMA,expr),RBRACKET)
       { Expression.apply ~loc:here e arg_list }
 
 
 simple_expr: 
  | LPAREN e = expr RPAREN { e }
-  (* | LPAREN e = expr error  *)
-  (*   { unclosed "{" $startpos($1) $endpos($1) "}" $startpos($3) $endpos($3); *)
-  (*     make_expression Expression.Error $startpos $endpos } *)
-  | c = constant
-	  { Expression.constant c ~loc:here }
-  | b = block { b }
-  | v = IDENT { Expression.ident (Fqident.parse v) ~loc:here }
+ | c = constant { Expression.constant c ~loc:here }
+ | b = block { b }
+ | v = IDENT { Expression.ident (Fqident.parse v) ~loc:here }
 
 
 block:
   (* a block is either expr, { seq_expr }, or BEGIN seq_expr END *)
   | LCURLY te = seq_expr RCURLY
       { reloc_exp te $startpos $endpos }
-  (* | LCURLY seq_expr error *)
-  (*     { unclosed "{" $startpos($1) $endpos($1) "}" $startpos($3) $endpos($3); *)
-  (*       make_expression Pexp_err $startpos $endpos } *)
   | BEGIN te = seq_expr END
       { reloc_exp te $startpos $endpos }
-  (* | BEGIN seq_expr error *)
-  (*   { unclosed "begin" $startpos($1) $endpos($1) "end" $startpos($3) $endpos($3);  *)
-  (*     make_expression Pexp_err $startpos $endpos } *)
-  (* | BEGIN e = error { e } *)
 
 (** Patterns *)
-
 pattern:
   | s = simple_pattern { s }
   | s = simple_pattern COLON ct = core_type
@@ -351,14 +346,19 @@ simple_pattern:
   | v = IDENT { Pattern.var v ~loc:here }
   | UNDERSCORE { Pattern.any () ~loc:here }
   | p = pattern AS v = IDENT { Pattern.alias p v ~loc:here }
+
+  (* (elem1,elem2,_) *)
   | LPAREN ct = simple_pattern COMMA ctl = separated_nonempty_list(COMMA, simple_pattern) RPAREN
       { Pattern.tuple (ct::ctl) ~loc:here }
+
+  (* [e1,e2,_] *)
   | LBRACKET ct = simple_pattern COMMA ctl = separated_nonempty_list(COMMA, simple_pattern) RBRACKET
       { Pattern.vector (ct::ctl) ~loc:here }
 
+  (* TODO: [e1,e2,es...] *)
+  
+  (* elem *)
   | c = constant { Pattern.constant c ~loc:here }
-  (* | error { expected "a pattern" $startpos $endpos ~suggestion:"use an '_' or '()'"; *)
-  (*	    make_pattern Pattern.Error $startpos $endpos } *)
 
 
 (* Core types *)
@@ -376,6 +376,7 @@ simple_core_type:
   | QUOTE i = IDENT
       { Type.var i ~loc:here }
 
+  (* _ *)
   | UNDERSCORE 
       { Type.any () ~loc:here }
 
@@ -384,10 +385,10 @@ simple_core_type:
       { Type.constructor (Fqident.parse t) ts ~loc:here }
 
 
-
-
 simple_core_type_or_tuple:
   | s = simple_core_type   { s }
+
+  (* (Int,Int,Float) *)
   | LPAREN ct = simple_core_type COMMA ctl = separated_nonempty_list(COMMA, simple_core_type) RPAREN
      { Type.tuple (ct::ctl) ~loc:here }
 
@@ -395,16 +396,17 @@ simple_core_type_or_tuple:
 anon_func:
   (* fn [tail] *)
   | FUNCTION f = func_proto_body { f }
+
   (* |x,y,...z| [tail] *)
   | pl = delimited_by(PIPE, separated_nonempty_list(COMMA, pattern_opt_default)) e = func_proto_tail
       { Expression.fn pl e ~loc:here }
-  (* | error func_proto_body  *)
-  (*     { make_expression Pexp_err $startpos($1) $endpos($1) } *)
+
 
 func_proto_body:
-  (* (x...) [tail] *)
+  (* (x,y...) [tail] *)
   | p = delimited(LPAREN, arg_list, RPAREN) e = func_proto_tail
-    { Expression.fn p e ~loc:here }
+      { Expression.fn p e ~loc:here }
+
   (* [tail] *)
   | e = func_proto_tail { Expression.fn [] e ~loc:here }
 
@@ -435,8 +437,6 @@ func_proto_tail:
   (* ; [body] end *)
   | sep+ body = seq_expr END { body }
 
-  (* | sep seq_expr error  *) (* To be used for missing END *)
-
 %inline arg_list: sl = separated_list(COMMA, pattern_opt_default) { sl }
 
 (* This rule is for default values. e.g. *)
@@ -451,8 +451,6 @@ pattern_opt_default:
 
 let_main:
   (* let ;* [binding] in; [seq_expr] end *)
-(* | LET sep* lb = let_binding sep+ lbs = let_binding* sep* IN sep* e = seq_expr END  *)
-(* | LET sep* lb = let_binding lbs = let_binding_many* sep* IN sep* e = seq_expr END  *)
   | LET sep* lb = let_binding_many sep* IN sep* e = seq_expr END
     { Expression.let_ lb e ~loc:here }
 
@@ -461,22 +459,27 @@ let_binding_many:
   | lbs = let_binding_many sep+ lb = let_binding { lbs@[lb] }
 
 let_binding:
-  (* x = [expr] sep+ *)
+  (* x = [expr] *)
   | p = pattern EQUAL e = expr
       { LetStatement.binding ~loc:here (ValueBinding.make p e ~loc:here) }
 
+  (* x -> foo(y) *)
   | p = pattern RIGHT_STAB e = expr
       { LetStatement.call ~loc:here (BoundCall.pipelined p e ~loc:here) }
 
+  (* x => foo(y) *)
   | p = pattern RIGHT_FAT e = expr
-     { LetStatement.call ~loc:here (BoundCall.forked p e ~loc:here) }
+      { LetStatement.call ~loc:here (BoundCall.forked p e ~loc:here) }
 
+  (* x ~> foo(y) *)
   | p = pattern RIGHT_CURVY e = expr
       { LetStatement.call ~loc:here (BoundCall.synced p e ~loc:here) }
 
+  (* x <- foo(y) *)
   | p = pattern LEFT_STAB e = expr
       { LetStatement.future ~loc:here (FutureBinding.make p e ~loc:here) }
 
+  (* import Mortar.List *)
   | IMPORT t = TYPE
       { LetStatement.import ~loc:here (Type.lit t ~loc:there(t)) }
 

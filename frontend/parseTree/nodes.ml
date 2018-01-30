@@ -3,7 +3,7 @@
  * internal tree representation, without context-based
  * information, such as typing
  *)
-
+open Common
 type 'a location = 'a Location.loc
 
 (* To avoid confusion, the work 'variant' is used in 
@@ -244,6 +244,8 @@ and StructureItem : sig
 
     (* import Mortar.Maps.TreeMap *)
     | Import of CoreType.t
+
+    | Within of CoreType.t
 
     (* module MyModule; [structure]; end *)
     (* Technically Modules could contain "using" statements, but our 

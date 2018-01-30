@@ -1,7 +1,7 @@
 open Nodes
 open Sedlexing
 open Format
-open Location
+open Common.Location
 open Yojson.Basic
 
 let fmt_position with_name l =

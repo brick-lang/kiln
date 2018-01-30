@@ -1,10 +1,20 @@
-open Basic
+(** Identity function  *)
+let id x = x 
+
+(** Constant function *)
+let const x _ = x
+let seq  _ x = x
+
+(** Flip takes its (first) two arguments in the reverse order of f *)
+let flip f x y = f y x
+let flip2 f y z x = f x y z
+let flip3 f x y z w = f w x y z
 
 module type Monad = sig
   type 'a t
   val map    : 'a t -> f:('a -> 'b) -> 'b t
-  val return : 'a Lazy.t -> 'a t
-  val bind   : 'a t -> ('a -> 'b t) -> 'b t
+  val return : 'a -> 'a t
+  val bind   : 'a t -> f:('a -> 'b t) -> 'b t
 end
 
 module type S = sig
@@ -64,11 +74,12 @@ module type S = sig
   val ap : ('a -> 'b) t -> 'a t -> 'b t
 end
 
-module Make(M : Monad) : S with type 'a t := 'a M.t = struct
+module Make(M : Monad) : S with type 'a t = 'a M.t = struct
   include M
+
   let pure = return
 
-  let (>>=) = bind
+  let (>>=) a f = bind a ~f
   let fmap f a = map ~f a
 
   let (<$) x = fmap (const x)
@@ -78,15 +89,15 @@ module Make(M : Monad) : S with type 'a t := 'a M.t = struct
 
   let (>$) x = fmap (seq x)
   let ($<) x y = y >$ x
-  let (>>$) x y = (return @@ lazy x) $> y
+  let (>>$) x y = (return x) $> y
   let ($<<) x y = y >>$ x
 
-  let ($>=) x y = (return @@ lazy x) >>= y
+  let ($>=) x y = (return x) >>= y
 
-  let liftM  f m     = m  >>= fun x  -> return @@ lazy (f x)
-  let liftM2 f m1 m2 = m1 >>= fun x1 -> m2 >>= fun x2 -> return @@ lazy (f x1 x2)
+  let liftM  f m     = m  >>= fun x  -> return (f x)
+  let liftM2 f m1 m2 = m1 >>= fun x1 -> m2 >>= fun x2 -> return (f x1 x2)
 
-  let (<*>) fs xs = fs >>= fun f -> xs >>= fun x -> return @@ lazy (f x)
+  let (<*>) fs xs = fs >>= fun f -> xs >>= fun x -> return (f x)
 
   (** Sequence actions, discarding the value of the first argument *)
   let ( *> ) a1 a2 = (id <$ a1) <*> a2
@@ -108,7 +119,7 @@ module Make(M : Monad) : S with type 'a t := 'a M.t = struct
   let (>>|) = (<$$>)
   (* let ($$>) x y = (return x) $>> y *)
 
-  let ignore t = return @@ lazy ()
+  let ignore t = return ()
 
   let (=<<) x y = y >>= x
 
@@ -116,22 +127,22 @@ module Make(M : Monad) : S with type 'a t := 'a M.t = struct
     let k m n =
       m >>= fun x ->
       n >>= fun xs ->
-      return @@ lazy (x::xs)
+      return (x::xs)
     in
-    List.fold_right k ms (return @@ lazy [])
+    List.fold_right k ms (return [])
 
   let sequence_ ms =
-    List.fold_right (>>) ms (return @@ lazy ())
+    List.fold_right (>>) ms (return ())
 
   let mapM  f a = sequence  (List.map f a)
   let mapM_ f a = sequence_ (List.map f a)
 
   let rec filterM p = function
-    | []    -> return @@ lazy []
+    | []    -> return []
     | x::xs ->
-	p x >>= fun flg ->
-	filterM p xs >>= fun ys ->
-	return @@ lazy (if flg then x::ys else ys)
+        p x >>= fun flg ->
+        filterM p xs >>= fun ys ->
+        return (if flg then x::ys else ys)
 
   let forM  x y = mapM  y x
   let forM_ x y = mapM_ y x
@@ -140,10 +151,10 @@ module Make(M : Monad) : S with type 'a t := 'a M.t = struct
   let void m = fmap (const ()) m
 
   let rec foldM f a = function
-    | []    -> return @@ lazy a
+    | []    -> return a
     | x::xs -> f a x >>= fun fax -> foldM f fax xs
 
-  let foldM_ f a xs = foldM f a xs >> return @@ lazy ()
+  let foldM_ f a xs = foldM f a xs >> return ()
 
   let rec replicate n i =
     match n with
@@ -153,10 +164,10 @@ module Make(M : Monad) : S with type 'a t := 'a M.t = struct
   let replicateM n x = sequence (replicate n x)
   let replicateM_ n x = sequence_ (replicate n x)
 
-  let mwhen p s = if p then s else return @@ lazy ()
-  let unless p s = if p then return @@ lazy () else s
+  let mwhen p s = if p then s else return ()
+  let unless p s = if p then return () else s
 
-  let liftM3 f m1 m2 m3 = m1 >>= fun x1 -> m2 >>= fun x2 -> m3 >>= fun x3 -> return @@ lazy (f x1 x2 x3)
-  let liftM4 f m1 m2 m3 m4 = m1 >>= fun x1 -> m2 >>= fun x2 -> m3 >>= fun x3 -> m4 >>= fun x4 -> return @@ lazy (f x1 x2 x3 x4)
+  let liftM3 f m1 m2 m3 = m1 >>= fun x1 -> m2 >>= fun x2 -> m3 >>= fun x3 -> return (f x1 x2 x3)
+  let liftM4 f m1 m2 m3 m4 = m1 >>= fun x1 -> m2 >>= fun x2 -> m3 >>= fun x3 -> m4 >>= fun x4 -> return (f x1 x2 x3 x4)
   let ap       m1 m2 = liftM2 id m1 m2
 end

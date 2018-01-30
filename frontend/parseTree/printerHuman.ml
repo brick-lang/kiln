@@ -1,7 +1,7 @@
 open Nodes
 open Sedlexing
 open Format
-open Location
+open Common.Location
 
 let fmt_position with_name f l =
   let fname = if with_name then l.file_name else "" in

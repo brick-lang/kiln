@@ -11,7 +11,6 @@ build: [
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
 depends: [
-  "batteries"
   "cmdliner"
   "core"
   "jbuilder" {build & >= "1.0+beta12"}
