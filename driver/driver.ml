@@ -10,7 +10,6 @@ open Core
 open Format
 open Common
 open Util.Basic
-open Util.Support.Error
 open Frontend
 
 type error =
@@ -99,23 +98,22 @@ let parse (lexbuf:Sedlexing.lexbuf) lexer checkpoint =
 let parse_file inFile =
   let pos = Lexing.{ pos_fname = inFile;
                      pos_lnum = 0; pos_bol = 0; pos_cnum = 0} in
-  let file_parser = Parser.Incremental.file_input pos in
-  let pi = In_channel.create inFile in
-  let lexbuf = Location.init inFile @@ Sedlexing.Utf8.from_channel pi in
-  let (state, result) = StateM.run (parse lexbuf Lexer.main file_parser) State.empty in
-  if List.length state.errors > 0 then begin
-    List.rev state.errors
-    |> List.iter ~f:(function ParserError e -> Location.print_error pi @@ Parser.Error.prepare_error e
-                            | LexerError e  -> Location.print_error pi @@ Lexer.prepare_error e
-                            | Rejected -> ());
-    None
-  end
-  else begin 
-    Parsing.clear_parser ();
-    In_channel.close pi;
-    result
-  end
-
+  let parse_channel chan =
+    let parser = Parser.Incremental.file_input pos in
+    let lexbuf = Location.init inFile @@ Sedlexing.Utf8.from_channel chan in
+    let (state, result) = StateM.run (parse lexbuf Lexer.main parser) State.empty in
+    if List.length state.errors > 0 then
+      let errors = List.rev state.errors in
+      let _ = List.iter errors ~f:(function
+          | ParserError e -> Location.print_error chan @@ Parser.Error.prepare_error e
+          | LexerError e  -> Location.print_error chan @@ Lexer.prepare_error e
+          | Rejected -> ())
+      in
+      None
+    else
+      result
+  in 
+  In_channel.with_file inFile ~f:parse_channel
 
 let codegen_file inFile = 
   let parsed = match parse_file inFile with Some s -> s | _ -> failwith "Malformed parsetree." in

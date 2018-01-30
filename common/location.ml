@@ -188,14 +188,14 @@ type error = {
   sub_errors: error list;
 }
 
-let rec print_error lb ?(sub_error=false) { header; message; location; sub_errors} =
+let rec print_error chan ?(sub_error=false) { header; message; location; sub_errors} =
   let header_helper () : unit = 
     Console.Ansi.printf [`Red; `Bright] " Error: ";
     Console.Ansi.printf [`Bright] "%s" header;
     ()
   in
   if not sub_error then
-    highlight_textutils header_helper lb location;
+    highlight_textutils header_helper chan location;
   (match message with
    | Some m -> 
        if not sub_error then
@@ -204,10 +204,9 @@ let rec print_error lb ?(sub_error=false) { header; message; location; sub_error
          Console.Ansi.printf [`Bright] "Suggestion: ";
        print_endline m
    | None -> ());
-  if not @@ List.is_empty sub_errors then begin
-    ignore @@ List.map ~f:(print_error lb ~sub_error:true) sub_errors;
-    print_newline ()
-  end
+  ignore @@ List.map ~f:(print_error chan ~sub_error:true) sub_errors;
+  if List.length sub_errors > 1 then print_newline ()
+
 
 let errorf ~header ?(location = none) ?(sub_errors = []) =
   Printf.ksprintf (fun message -> { location; header; message=(Some(message)); sub_errors})

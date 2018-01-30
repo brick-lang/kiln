@@ -16,9 +16,15 @@ depends: [
   "jbuilder" {build & >= "1.0+beta12"}
   "llvm"
   "menhir"
+  "ppx_deriving"
   "ppx_let"
   "textutils"
   "yojson"
+
+  # for sedlex
+  "gen"
+  "ocaml-migrate-parsetree"
+  "ppx_tools_versioned"
 ]
 available: [ ocaml-version >= "4.04.1" ]
 descr: "The reference compiler for the Brick language"

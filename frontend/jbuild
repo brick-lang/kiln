@@ -1,6 +1,6 @@
 (library
  ((name frontend)
-  (preprocess (pps (sedlex.ppx)))
+  (preprocess (pps (sedlex_ppx)))
   (libraries (common util sedlex parseTree
               menhirLib))))
 
