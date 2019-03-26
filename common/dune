@@ -1,0 +1,5 @@
+(library
+ (name common)
+ (libraries util core textutils.console sedlex)
+ (preprocess
+  (pps ppx_deriving.std)))

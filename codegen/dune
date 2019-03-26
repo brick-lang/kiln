@@ -1,0 +1,4 @@
+(library
+ (name codegen)
+ (wrapped false)
+ (libraries util frontend llvm llvm.analysis llvm.target llvm.all_backends))

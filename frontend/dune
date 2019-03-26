@@ -1,0 +1,16 @@
+(library
+ (name frontend)
+ (preprocess
+  (pps sedlex_ppx))
+ (libraries common util sedlex parseTree menhirLib))
+
+(rule
+ (targets parser.mly)
+ (deps
+  (:< parser.cppo.mly))
+ (action
+  (run %{bin:cppo} -n %{<} -o %{targets})))
+
+(menhir
+ (flags --table --inspection) ; --infer --inspection
+ (modules parser))

@@ -64,7 +64,6 @@ let input_name = ref "_none_"
 let get_pos_info pos =
   (pos.file_name, pos.line_number, pos.buffer_offset - pos.line_offset + 1)
 
-open Textutils
 
 let highlight_textutils (header: unit -> unit ) chan loc =
   let start_offset = loc.loc_start.line_offset in

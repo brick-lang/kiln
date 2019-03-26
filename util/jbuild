@@ -1,5 +1,0 @@
-(library
- ((name util)
-  (libraries (core))))
-
-(jbuild_version 1)

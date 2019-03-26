@@ -8,12 +8,12 @@ bug-reports: "https://github.com/brick-lang/kiln/issues"
 dev-repo: "https://github.com/brick-lang/kiln"
 license: "BSD-3-clause"
 build: [
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
   "cmdliner"
   "core"
-  "jbuilder" {build & >= "1.0+beta12"}
+  "dune" {build & >= "1.0"}
   "llvm"
   "menhir"
   "ppx_deriving"

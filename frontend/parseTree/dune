@@ -1,0 +1,5 @@
+(library
+ (name parseTree)
+ (preprocess
+  (pps sedlex_ppx))
+ (libraries util common sedlex yojson))

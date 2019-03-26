@@ -1,9 +1,0 @@
-(executable
- ((name kiln)
-  (public_name kiln)
-  (modules (kiln driver))
-  (libraries (util common frontend codegen
-              yojson cmdliner))
-  (preprocess (pps (ppx_let)))))
-
-(jbuild_version 1)
