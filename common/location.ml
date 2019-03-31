@@ -3,15 +3,15 @@
  * This has been adapted to use Sedlexing, and will be heavily modified
  * in the future. *)
 
-open Sedlexing
+open Lexing
 open Core
 open Util.Basic
 
 let pp_position fmt p =
-  Format.fprintf fmt "{ file_name = %s;\n" p.file_name;
-  Format.fprintf fmt "    buffer_offset = %d;\n" p.buffer_offset;
-  Format.fprintf fmt "    line_number = %d;\n" p.line_number;
-  Format.fprintf fmt "    line_offset = %d }" p.line_offset;
+  Format.fprintf fmt "{ filename = %s;\n" p.pos_fname;
+  Format.fprintf fmt "    character offset = %d;\n" p.pos_cnum;
+  Format.fprintf fmt "    line number = %d;\n" p.pos_lnum;
+  Format.fprintf fmt "    line offset = %d }" p.pos_bol;
 
 type t = {
   loc_start: position;
@@ -20,57 +20,54 @@ type t = {
 } [@@deriving show]
 
 let rloc start_pos end_pos = {
-  loc_start = Sedlexing.pos_sedlexing start_pos;
-  loc_end   = Sedlexing.pos_sedlexing end_pos;
+  loc_start = start_pos;
+  loc_end   = end_pos;
   loc_ghost = false;
 }
 
 let gloc start_pos end_pos = {
-  loc_start = Sedlexing.pos_sedlexing start_pos;
-  loc_end   = Sedlexing.pos_sedlexing end_pos;
+  loc_start = start_pos;
+  loc_end   = end_pos;
   loc_ghost = true;
 }
 
 let in_file name =
   let loc = {
-    file_name = name;
-    line_number = 1;
-    line_offset = 0;
-    buffer_offset = -1;
+    pos_fname = name;
+    pos_lnum = 1;
+    pos_bol = 0;
+    pos_cnum = -1;
   } in
   { loc_start = loc; loc_end = loc; loc_ghost = true }
 
 
 let none = in_file "_none_";;
 
-let curr lexbuf = {
-  loc_start = lexbuf.start_pos;
-  loc_end = lexbuf.curr_pos;
-  loc_ghost = false
-}
+let curr (lexbuf:Sedlexing.lexbuf) =
+  let (start_pos, curr_pos) = Sedlexing.lexing_positions lexbuf in
+  {
+    loc_start = start_pos;
+    loc_end = curr_pos;
+    loc_ghost = false
+  }
 
-let init fname lexbuf =
-  lexbuf.curr_pos <- {
-    file_name = fname;
-    line_number = 1;
-    line_offset = 0;
-    buffer_offset = 0;
-  };
+let init (fname:string) (lexbuf:Sedlexing.lexbuf) =
+  Sedlexing.set_filename lexbuf fname;
   lexbuf
 
 let input_name = ref "_none_"
 
 (* return file, line, char from the given position *)
-let get_pos_info pos =
-  (pos.file_name, pos.line_number, pos.buffer_offset - pos.line_offset + 1)
+let get_pos_info (pos:Lexing.position) =
+  (pos.pos_fname, pos.pos_lnum, pos.pos_cnum - pos.pos_bol + 1)
 
 
-let highlight_textutils (header: unit -> unit ) chan loc =
-  let start_offset = loc.loc_start.line_offset in
+let highlight_textutils (header: unit -> unit ) chan (loc:t) =
+  let start_offset = loc.loc_start.pos_bol in
 
   (* Determine line numbers for the start and end points *)
-  let start_line = loc.loc_start.line_number in
-  let end_line = loc.loc_end.line_number in
+  let start_line = loc.loc_start.pos_lnum in
+  let end_line = loc.loc_end.pos_lnum in
 
   (* Lines of input to work with *)
   let lines =
@@ -99,7 +96,7 @@ let highlight_textutils (header: unit -> unit ) chan loc =
   let indent c = Out_channel.output_string c "  " in
 
   let curr_line = ref start_line in
-  let pos_at_bol = ref loc.loc_start.line_offset in
+  let pos_at_bol = ref loc.loc_start.pos_bol in
 
   (** Prints a single character, depending on its position *)
   let handler line =
@@ -108,8 +105,8 @@ let highlight_textutils (header: unit -> unit ) chan loc =
     indent stdout;
     print_string line;
 
-    let start_idx = loc.loc_start.buffer_offset in
-    let end_idx = loc.loc_end.buffer_offset in
+    let start_idx = loc.loc_start.pos_cnum in
+    let end_idx = loc.loc_end.pos_cnum in
 
     (* Hit the end of the last line; time to underline *)
     if !curr_line = end_line then begin

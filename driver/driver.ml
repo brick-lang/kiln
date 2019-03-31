@@ -37,8 +37,7 @@ module MI = Parser.MenhirInterpreter
 
 let rec get_next_token lexer lexbuf = let open Result.Let_syntax in
   let%bind token = lexer lexbuf in
-  let startp = Sedlexing.lexeme_start_position lexbuf in
-  let endp = Sedlexing.lexeme_end_position lexbuf in
+  let (startp, endp) = Sedlexing.lexing_positions lexbuf in
   return (token, startp, endp)
 
 let handle_error (lexbuf:Sedlexing.lexbuf) last_triple env (inputneeded, checkpoint) =
