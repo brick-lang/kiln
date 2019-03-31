@@ -1,15 +1,15 @@
 open Nodes
-open Sedlexing
+open Lexing
 open Format
 open Common.Location
 open Yojson.Basic
 
 let fmt_position with_name l =
-  let fname = if with_name then l.file_name else "" in
-  if l.line_number = -1
-  then sprintf "%s[%d]" fname l.buffer_offset
-  else sprintf "%s[%d,%d+%d]" fname l.line_number l.line_offset
-         (l.buffer_offset - l.line_offset)
+  let fname = if with_name then l.pos_fname else "" in
+  if l.pos_lnum = -1
+  then sprintf "%s[%d]" fname l.pos_cnum
+  else sprintf "%s[%d,%d+%d]" fname l.pos_lnum l.pos_bol
+         (l.pos_cnum - l.pos_bol)
 ;;
 
 let rec fmt_fqident_aux = function
@@ -18,7 +18,7 @@ let rec fmt_fqident_aux = function
 ;;
 
 let location loc =
-  let p_2nd_name = loc.loc_start.file_name <> loc.loc_end.file_name in
+  let p_2nd_name = loc.loc_start.pos_fname <> loc.loc_end.pos_fname in
   let value = (sprintf "(%s..%s)" 
                  (fmt_position true loc.loc_start)
                  (fmt_position p_2nd_name loc.loc_end)) ^ 
@@ -26,21 +26,21 @@ let location loc =
   "location", `String value
 ;;
 
-let fqident_loc (x : Fqident.t location) : json = 
+let fqident_loc (x : Fqident.t location) : t = 
   `Assoc [
     location x.loc;
     "fqident", `String (fmt_fqident_aux x.txt);
   ]
 ;;
 
-let string_loc (x : string location) : json =
+let string_loc (x : string location) : t =
   `Assoc [
     location x.loc;
     "string",`String x.txt; 
   ]
 ;;
 
-let fmt_constant (x:Constant.t) : json =
+let fmt_constant (x:Constant.t) : t =
   let ls = 
     match x.Constant.variant with
     | Constant.Int (i) -> 
@@ -66,20 +66,20 @@ let fmt_constant (x:Constant.t) : json =
 (*   | Private -> fprintf f "Private"; *)
 (* ;; *)
 
-let list (f:'a -> json) : 'a list -> json = function 
+let list (f:'a -> t) : 'a list -> t = function 
   | [] -> `List []
   | l -> `List (List.map f l)
 ;;
 
-let option f : 'a option -> json = function
+let option f : 'a option -> t = function
   | None -> `Null;
   | Some x -> f x;
 ;;
 
-let string s : json = `String s;;
-let bool x : json = `Bool x;;
+let string s : t = `String s;;
+let bool x : t = `Bool x;;
 
-let rec core_type (x:CoreType.t) : json =
+let rec core_type (x:CoreType.t) : t =
   let ls = 
     (location x.CoreType.location) ::
     match x.CoreType.variant with
@@ -351,4 +351,4 @@ and let_statement x =
          "module", core_type i]
   in `Assoc ls
 
-let implementation (x:Structure.t) : json = structure x;;
+let implementation (x:Structure.t) : t = structure x;;

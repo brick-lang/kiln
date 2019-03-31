@@ -1,7 +1,7 @@
 (library
  (name frontend)
  (preprocess
-  (pps sedlex_ppx))
+  (pps sedlex.ppx))
  (libraries common util sedlex parseTree menhirLib))
 
 (rule

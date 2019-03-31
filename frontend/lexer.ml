@@ -43,8 +43,8 @@ let prepare_error err =
 (* Keyword table *)
 let keyword_table = String.Table.create () ~size:1024 ~growth_allowed:false
 let _ =
-  List.iter ~f:(fun (str,f) -> 
-      ignore (String.Table.add keyword_table ~key:str ~data:f)) 
+  List.iter ~f:(fun (str,f) ->
+      ignore (String.Table.add keyword_table ~key:str ~data:f))
     [
       "and", AND;
       "as", AS;
@@ -89,37 +89,37 @@ let cvt_nativeint_literal = Caml.Nativeint.of_string_opt
 let rcom_count = ref 0
 
 (* Error report *)
-let digit    = [%re? '0'..'9']
-let hexdigit = [%re? '0'..'9','a'..'f','A'..'F']
-let bindigit = [%re? '0'|'1'] 
+let digit    = [%sedlex.regexp? '0'..'9']
+let hexdigit = [%sedlex.regexp? '0'..'9','a'..'f','A'..'F']
+let bindigit = [%sedlex.regexp? '0'|'1']
 
-let int_literal = [%re? Opt '-', Plus digit] (* '-'? digit+ *)
-let frac = [%re? '.', (Star digit)] (* '.' digit* *)
-let exp = [%re? 'e', Opt ('-'|'+'), Plus digit] (*  'e' ['-' '+']?] digit+ *)
-let float_literal = [%re? Star digit, Opt frac, Opt exp]           (* digit* frac? exp? *)
+let int_literal = [%sedlex.regexp? Opt '-', Plus digit] (* '-'? digit+ *)
+let frac = [%sedlex.regexp? '.', (Star digit)] (* '.' digit* *)
+let exp = [%sedlex.regexp? 'e', Opt ('-'|'+'), Plus digit] (*  'e' ['-' '+']?] digit+ *)
+let float_literal = [%sedlex.regexp? Star digit, Opt frac, Opt exp]           (* digit* frac? exp? *)
 
-let hexnum = [%re? "0x", Plus hexdigit]     (* "0x" hexdigit+ *)
+let hexnum = [%sedlex.regexp? "0x", Plus hexdigit]     (* "0x" hexdigit+ *)
 
-let binnum = [%re? "0b", Plus bindigit]     (* "0b" bindigit+ *)
+let binnum = [%sedlex.regexp? "0b", Plus bindigit]     (* "0b" bindigit+ *)
 
-let version_number = [%re? Plus digit, '.', Plus digit, '.', Plus digit]
+let version_number = [%sedlex.regexp? Plus digit, '.', Plus digit, '.', Plus digit]
 
-let newline = [%re? '\r' | '\n' | "\r\n"]
+let newline = [%sedlex.regexp? '\r' | '\n' | "\r\n"]
 
-let string_literal = [%re? '\"', Star any, '\"']
-let unterminated_string_literal = [%re? '\"', Star any]
+let string_literal = [%sedlex.regexp? '\"', Star any, '\"']
+let unterminated_string_literal = [%sedlex.regexp? '\"', Star any]
 
-let char_literal = [%re? '\'', any, '\'']
+let char_literal = [%sedlex.regexp? '\'', any, '\'']
 
-let ident = [%re? lowercase, Star(alphabetic | '0'..'9' | '_' )]
-let fn_ident = [%re? ident, Opt('\''|'?'|'!')] (* function names can end in ' (prime) ? (predicate/bool) or ! (mutator) *)
+let ident = [%sedlex.regexp? lowercase, Star(alphabetic | '0'..'9' | '_' )]
+let fn_ident = [%sedlex.regexp? ident, Opt('\''|'?'|'!')] (* function names can end in ' (prime) ? (predicate/bool) or ! (mutator) *)
 
-let type_re = [%re? uppercase, Star(alphabetic | '0'..'9' | '_')]
+let type_re = [%sedlex.regexp? uppercase, Star(alphabetic | '0'..'9' | '_')]
 
 (* ( Type_re \.)* ident *)
-let fqident = [%re? Star(type_re, '.'), fn_ident]
+let fqident = [%sedlex.regexp? Star(type_re, '.'), fn_ident]
 
-let fqtype = [%re? Star(type_re, '.'), type_re]
+let fqtype = [%sedlex.regexp? Star(type_re, '.'), type_re]
 
 
 let rec main lexbuf : (token,error) Result.t =
@@ -130,37 +130,37 @@ let rec main lexbuf : (token,error) Result.t =
   | " "      -> main lexbuf
   | "#{"     -> incr rcom_count; recursive_comment lexbuf
   | "#="     -> block_comment lexbuf
-  | '#'      -> comment lexbuf 
-  | '|'      -> return PIPE 
-  | '_'      -> return UNDERSCORE 
-  | '='      -> return EQUAL 
-  | '+'      -> return PLUS 
-  | '-'      -> return MINUS 
-  | '*'      -> return ASTERISK 
-  | '/'      -> return FWD_SLASH 
-  | '\\'     -> return BCK_SLASH 
+  | '#'      -> comment lexbuf
+  | '|'      -> return PIPE
+  | '_'      -> return UNDERSCORE
+  | '='      -> return EQUAL
+  | '+'      -> return PLUS
+  | '-'      -> return MINUS
+  | '*'      -> return ASTERISK
+  | '/'      -> return FWD_SLASH
+  | '\\'     -> return BCK_SLASH
   | ','      -> return COMMA
   | '\''     -> return QUOTE
-  | '{'      -> return LCURLY 
-  | '}'      -> return RCURLY 
-  | '('      -> return LPAREN 
-  | ')'      -> return RPAREN 
-  | '['      -> return LBRACKET 
-  | ']'      -> return RBRACKET 
-  | ':'      -> return COLON 
-  | ';'      -> return SEMICOLON 
+  | '{'      -> return LCURLY
+  | '}'      -> return RCURLY
+  | '('      -> return LPAREN
+  | ')'      -> return RPAREN
+  | '['      -> return LBRACKET
+  | ']'      -> return RBRACKET
+  | ':'      -> return COLON
+  | ';'      -> return SEMICOLON
   | '>'      -> return GREATER_THAN
   | '<'      -> return LESS_THAN
-  | "->"     -> return RIGHT_STAB 
-  | "<-"     -> return LEFT_STAB 
-  | "=>"     -> return RIGHT_FAT 
+  | "->"     -> return RIGHT_STAB
+  | "<-"     -> return LEFT_STAB
+  | "=>"     -> return RIGHT_FAT
   (* | "<="     -> LEFT_FAT  *)
-  | "~>"     -> return RIGHT_CURVY 
-  | "<~"     -> return LEFT_CURVY 
-  | "<=>"    -> return SPACESHIP 
-  | "||"     -> return OR 
-  | "&&"     -> return AND 
-  | "not"    -> return NOT 
+  | "~>"     -> return RIGHT_CURVY
+  | "<~"     -> return LEFT_CURVY
+  | "<=>"    -> return SPACESHIP
+  | "||"     -> return OR
+  | "&&"     -> return AND
+  | "not"    -> return NOT
 
   | char_literal ->
       let c = lexeme lexbuf in
@@ -205,15 +205,15 @@ let rec main lexbuf : (token,error) Result.t =
 
   | fqident ->
       let i = lexeme lexbuf in begin
-	match Hashtbl.find keyword_table i with
-	| Some(tok) -> return tok
-	| None ->  return @@ IDENT i
+    match Hashtbl.find keyword_table i with
+    | Some(tok) -> return tok
+    | None ->  return @@ IDENT i
       end
 
-  | eof -> return EOF 
+  | eof -> return EOF
 
   | _ ->
-      let old_lexbuf = lexbuf in begin 
+      let old_lexbuf = lexbuf in begin
         Pervasives.ignore @@ Sedlexing.next lexbuf;
         fail @@ Illegal_character(Sedlexing.Utf8.lexeme old_lexbuf, Location.curr old_lexbuf)
       end
@@ -228,7 +228,7 @@ and comment lexbuf = match%sedlex lexbuf with
   | eof -> Result.return EOF
 
   (* Otherwise, we're part of the comment *)
-  | _ -> ignore @@ Sedlexing.next lexbuf; comment lexbuf 
+  | _ -> ignore @@ Sedlexing.next lexbuf; comment lexbuf
 
 and block_comment lexbuf = match%sedlex lexbuf with
   | "#=" -> main lexbuf

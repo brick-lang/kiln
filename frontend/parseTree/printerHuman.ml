@@ -1,14 +1,14 @@
 open Nodes
-open Sedlexing
+open Lexing
 open Format
 open Common.Location
 
 let fmt_position with_name f l =
-  let fname = if with_name then l.file_name else "" in
-  if l.line_number = -1
-  then fprintf f "%s[%d]" fname l.buffer_offset
-  else fprintf f "%s[%d,%d+%d]" fname l.line_number l.line_offset
-         (l.buffer_offset - l.line_offset)
+  let fname = if with_name then l.pos_fname else "" in
+  if l.pos_lnum = -1
+  then fprintf f "%s[%d]" fname l.pos_cnum
+  else fprintf f "%s[%d,%d+%d]" fname l.pos_lnum l.pos_bol
+         (l.pos_cnum - l.pos_bol)
 ;;
 
 let rec fmt_fqident_aux f = function
@@ -17,17 +17,17 @@ let rec fmt_fqident_aux f = function
 ;;
 
 let fmt_location f loc =
-  let p_2nd_name = loc.loc_start.file_name <> loc.loc_end.file_name in
+  let p_2nd_name = loc.loc_start.pos_fname <> loc.loc_end.pos_fname in
   fprintf f "(%a..%a)" (fmt_position true) loc.loc_start
     (fmt_position p_2nd_name) loc.loc_end;
   if loc.loc_ghost then fprintf f " ghost";
 ;;
 
-let fmt_fqident_loc f x = 
+let fmt_fqident_loc f x =
   fprintf f "\"%a\" %a" fmt_fqident_aux x.txt fmt_location x.loc
 ;;
 
-let fmt_fqident f (x :Fqident.t) = 
+let fmt_fqident f (x :Fqident.t) =
   fprintf f "\"%a\"" fmt_fqident_aux x
 ;;
 
@@ -149,7 +149,7 @@ and pattern i ppf (x:Pattern.t) =
   | Pattern.Constraint (p, ct) ->
       line i ppf "Pattern.Constraint\n";
       pattern i ppf p;
-      core_type i ppf ct; 
+      core_type i ppf ct;
 
   | Pattern.Error ->
       line i ppf "Pattern.Error\n";
@@ -159,7 +159,7 @@ and pattern_default i ppf (x:PatternDefault.t) =
   pattern i ppf x.pattern;
   match x.variant with
   | None -> ()
-  | Default d -> 
+  | Default d ->
       line i ppf "default\n";
       expression (i+1) ppf d
 
@@ -258,7 +258,7 @@ and expression i ppf (x:Expression.t) =
       expression i ppf e;
 
 
-  | Expression.Error -> 
+  | Expression.Error ->
       line i ppf "Expression.Error\n";
 
 and type_parameter i ppf (x, _variance) = core_type i ppf x
@@ -277,7 +277,7 @@ and structure_item i ppf (x:StructureItem.t) =
       line i ppf "StructureItem.Value\n";
       value_binding i ppf l;
 
-  | StructureItem.Using (t, v) -> 
+  | StructureItem.Using (t, v) ->
       line i ppf "StructureItem.Using\n";
       core_type i ppf t;
       string i ppf v;

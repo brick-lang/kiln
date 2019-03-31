@@ -20,11 +20,7 @@ depends: [
   "ppx_let"
   "textutils"
   "yojson"
-
-  # for sedlex
-  "gen"
-  "ocaml-migrate-parsetree"
-  "ppx_tools_versioned"
+  "sedlex"
 ]
 available: [ ocaml-version >= "4.04.1" ]
 descr: "The reference compiler for the Brick language"
